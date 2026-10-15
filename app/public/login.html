@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#1C1C1A">
+<meta name="robots" content="noindex, nofollow">
+<title data-i18n="Anmelden · l3t ipam">Anmelden · l3t ipam</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+</head>
+<body class="login-page">
+
+<main class="login">
+  <button class="btn ghost small login-lang" id="btnLang" type="button" title="Sprache / Language" aria-label="Sprache / Language" hidden>EN</button>
+  <div class="login-brand">
+    <svg class="logo" viewBox="0 0 473.97 128.77" role="img" aria-label="l3t"><path d="M40 255V340Q40 404 82.5 442.0Q125 480 195 480Q238 480 266.5 466.0Q295 452 313.5 431.0Q332 410 345.5 389.0Q359 368 373.5 354.0Q388 340 408 340Q440 340 440 375V450H560V365Q560 301 518.0 263.0Q476 225 405 225Q362 225 333.5 239.0Q305 253 286.5 274.0Q268 295 254.5 316.0Q241 337 226.5 351.0Q212 365 192 365Q160 365 160 330V255Z" fill="currentColor" opacity="0.45" transform="translate(-5.479 113.699) scale(0.136986 -0.136986)"/><path d="M50 -110 395 830H550L205 -110Z" fill="currentColor" opacity="0.45" transform="translate(68.493 113.699) scale(0.136986 -0.136986)"/><path d="M395 0Q337 0 293.0 24.5Q249 49 224.5 93.0Q200 137 200 195V595H25V730H350V200Q350 171 366.5 153.0Q383 135 410 135H565V0Z" fill="currentColor" transform="translate(142.466 113.699) scale(0.136986 -0.136986)"/><path d="M296 -10Q184 -10 118.0 46.5Q52 103 52 200H202Q202 163 227.5 141.5Q253 120 296 120Q340 120 365.0 141.5Q390 163 390 200V258Q390 299 365.5 321.5Q341 344 296 344H196V460L356 600H82V730H518V609L357 465Q443 450 491.5 396.0Q540 342 540 259V200Q540 103 474.5 46.5Q409 -10 296 -10Z" fill="currentColor" transform="translate(216.438 113.699) scale(0.136986 -0.136986)"/><path d="M355 0Q271 0 223.0 48.0Q175 96 175 180V415H27V550H175V705H325V550H540V415H325V185Q325 163 336.5 149.0Q348 135 370 135H535V0Z" fill="currentColor" transform="translate(290.411 113.699) scale(0.136986 -0.136986)"/><rect x="408.219" y="13.699" width="65.753" height="100.0" fill="currentColor"/></svg>
+    <span class="brand-sep" aria-hidden="true"></span>
+    <span class="product">ipam</span>
+  </div>
+
+  <!-- Anmelden -->
+  <form class="login-card" id="formLogin" hidden novalidate>
+    <h1 data-i18n="Anmelden">Anmelden</h1>
+    <div class="field"><label for="l-user" data-i18n="Benutzername">Benutzername</label>
+      <input id="l-user" name="user" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
+    <div class="field"><label for="l-pass" data-i18n="Passwort">Passwort</label>
+      <input id="l-pass" name="password" type="password" autocomplete="current-password" required></div>
+    <label class="check"><input type="checkbox" name="remember"> <span data-i18n="Angemeldet bleiben (30 Tage)">Angemeldet bleiben (30 Tage)</span></label>
+    <div class="form-error" role="alert"></div>
+    <button class="btn primary login-submit" type="submit" data-i18n="Anmelden">Anmelden</button>
+  </form>
+
+  <!-- Ersteinrichtung -->
+  <form class="login-card" id="formSetup" hidden novalidate>
+    <h1 data-i18n="Konto einrichten">Konto einrichten</h1>
+    <p class="login-text"><span data-i18n="Noch ist kein Konto angelegt. Den Einrichtungscode findest du im Protokoll des Containers:">Noch ist kein Konto angelegt. Den Einrichtungscode findest du im Protokoll des
+      Containers:</span> Container Manager → Container → <b>l3t-ipam</b> → <span data-i18n="Protokoll">Protokoll</span>.</p>
+    <div class="field"><label for="s-code" data-i18n="Einrichtungscode">Einrichtungscode</label>
+      <input id="s-code" name="code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX" required></div>
+    <div class="field"><label for="s-user" data-i18n="Benutzername">Benutzername</label>
+      <input id="s-user" name="user" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
+    <div class="field"><label for="s-pass" data-i18n="Passwort">Passwort</label>
+      <input id="s-pass" name="password" type="password" autocomplete="new-password" required>
+      <div class="hint" id="s-hint" data-i18n="Mindestens 12 Zeichen. Ein Satz aus mehreren Wörtern ist ideal.">Mindestens 12 Zeichen. Ein Satz aus mehreren Wörtern ist ideal.</div></div>
+    <div class="field"><label for="s-pass2" data-i18n="Passwort wiederholen">Passwort wiederholen</label>
+      <input id="s-pass2" name="password2" type="password" autocomplete="new-password" required></div>
+    <div class="form-error" role="alert"></div>
+    <button class="btn primary login-submit" type="submit" data-i18n="Konto anlegen">Konto anlegen</button>
+  </form>
+
+  <p class="login-foot" id="loginFoot"></p>
+</main>
+
+<script src="/i18n.js"></script>
+<script src="/login.js"></script>
+</body>
+</html>

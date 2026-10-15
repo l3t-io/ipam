@@ -1,0 +1,15 @@
+{
+  "name": "l3t-ipam",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Schlankes IPAM für das Heimnetz — Netze, Hosts, Belegungsraster, UniFi-Abgleich. Läuft als Container auf der Synology.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node app/server.js",
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "package": "node scripts/package.js"
+  }
+}

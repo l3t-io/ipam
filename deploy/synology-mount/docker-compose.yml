@@ -1,0 +1,36 @@
+# Synology Container Manager — ohne Image-Build.
+# Der Container startet node:22-alpine und führt die Anwendung aus dem
+# eingehängten Ordner aus. Es wird kein Dockerfile benötigt.
+services:
+  l3t-ipam:
+    image: node:22-alpine
+    container_name: l3t-ipam
+    restart: unless-stopped
+    working_dir: /app
+    command: node server.js
+    ports:
+      - "8480:8080"
+    volumes:
+      - /volume1/docker/l3t-ipam/app:/app:ro
+      - /volume1/docker/l3t-ipam/data:/data
+    environment:
+      IPAM_DATA: /data
+      IPAM_DOMAIN: home.arpa   # eigene Domain eintragen, etwa l3t.io
+      IPAM_LANG: de            # Sprache des Protokolls (de oder en)
+      TZ: Europe/Zurich
+      # Anmeldung: Beim ersten Start steht im Protokoll ein Einrichtungscode.
+      # Damit legst du im Browser dein Konto an. Hier ist nichts einzutragen.
+      #
+      # Läuft der Zugriff über einen Cloudflare-Tunnel oder den Reverse Proxy der
+      # Synology, diese Zeile aktiv lassen: Dann zählt die Sperre nach Fehlversuchen
+      # pro echter Absenderadresse, und das Cookie wird bei HTTPS als «Secure» markiert.
+      IPAM_TRUST_PROXY: "1"
+      # Die UniFi-Anbindung wird in der Oberfläche eingerichtet (Zahnrad oben rechts)
+      # und liegt in data/unifi.json. Hier ist dafür nichts mehr einzutragen.
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s

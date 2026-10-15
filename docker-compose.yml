@@ -1,0 +1,27 @@
+# L3T IPAM — any Docker host (Linux, Unraid, Proxmox, Raspberry Pi, …)
+#   docker compose up -d
+# then open http://<host>:8080 — the setup code for the first account is in the log:
+#   docker compose logs l3t-ipam
+services:
+  l3t-ipam:
+    image: ghcr.io/l3t-io/ipam:2
+    container_name: l3t-ipam
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      # Owner of the data folder on the host (see `id` on the host)
+      PUID: "1000"
+      PGID: "1000"
+      # Domain appended to host names for DNS names
+      IPAM_DOMAIN: home.arpa
+      # Language of the container log (the web UI has its own switch): en or de
+      IPAM_LANG: en
+      TZ: Europe/Zurich
+      # Behind a reverse proxy or Cloudflare Tunnel: count lockouts per real client
+      # address and mark the session cookie «Secure» on HTTPS.
+      # IPAM_TRUST_PROXY: "1"
+    security_opt:
+      - no-new-privileges:true

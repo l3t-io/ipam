@@ -1,0 +1,6 @@
+# Alles mit LF ablegen — der Code läuft im Linux-Container auf der Synology.
+* text=auto eol=lf
+
+*.woff2 binary
+*.zip binary
+*.png binary

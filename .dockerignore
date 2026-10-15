@@ -1,0 +1,4 @@
+*
+!app/
+!docker/entrypoint.sh
+app/data/

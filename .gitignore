@@ -1,0 +1,12 @@
+# Laufzeitdaten — der Bestand gehört nicht ins Repository
+data/*
+!data/.keep
+
+# Gebaute Pakete (werden als GitHub-Release angehängt, nicht eingecheckt)
+_exports/
+
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+.vscode/

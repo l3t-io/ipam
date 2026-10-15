@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#1C1C1A">
+<title>l3t ipam</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+</head>
+<body class="app">
+
+<header class="topbar">
+  <button class="rail-toggle" id="railToggle" aria-label="Netze anzeigen" data-i18n-aria-label="Netze anzeigen" aria-expanded="false">
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+  </button>
+
+  <a class="brand" id="brand" href="/" title="Übersicht" data-i18n-title="Übersicht">
+    <svg class="logo" viewBox="0 0 473.97 128.77" role="img" aria-label="l3t"><path d="M40 255V340Q40 404 82.5 442.0Q125 480 195 480Q238 480 266.5 466.0Q295 452 313.5 431.0Q332 410 345.5 389.0Q359 368 373.5 354.0Q388 340 408 340Q440 340 440 375V450H560V365Q560 301 518.0 263.0Q476 225 405 225Q362 225 333.5 239.0Q305 253 286.5 274.0Q268 295 254.5 316.0Q241 337 226.5 351.0Q212 365 192 365Q160 365 160 330V255Z" fill="currentColor" opacity="0.45" transform="translate(-5.479 113.699) scale(0.136986 -0.136986)"/><path d="M50 -110 395 830H550L205 -110Z" fill="currentColor" opacity="0.45" transform="translate(68.493 113.699) scale(0.136986 -0.136986)"/><path d="M395 0Q337 0 293.0 24.5Q249 49 224.5 93.0Q200 137 200 195V595H25V730H350V200Q350 171 366.5 153.0Q383 135 410 135H565V0Z" fill="currentColor" transform="translate(142.466 113.699) scale(0.136986 -0.136986)"/><path d="M296 -10Q184 -10 118.0 46.5Q52 103 52 200H202Q202 163 227.5 141.5Q253 120 296 120Q340 120 365.0 141.5Q390 163 390 200V258Q390 299 365.5 321.5Q341 344 296 344H196V460L356 600H82V730H518V609L357 465Q443 450 491.5 396.0Q540 342 540 259V200Q540 103 474.5 46.5Q409 -10 296 -10Z" fill="currentColor" transform="translate(216.438 113.699) scale(0.136986 -0.136986)"/><path d="M355 0Q271 0 223.0 48.0Q175 96 175 180V415H27V550H175V705H325V550H540V415H325V185Q325 163 336.5 149.0Q348 135 370 135H535V0Z" fill="currentColor" transform="translate(290.411 113.699) scale(0.136986 -0.136986)"/><rect x="408.219" y="13.699" width="65.753" height="100.0" fill="currentColor"/></svg>
+    <span class="brand-sep" aria-hidden="true"></span>
+    <span class="product">ipam</span>
+  </a>
+  <span class="version" id="version" title="Version"></span>
+
+  <input type="search" id="search" placeholder="IP, Hostname, MAC, Notiz …" data-i18n-placeholder="IP, Hostname, MAC, Notiz …" autocomplete="off" spellcheck="false" aria-label="Bestand durchsuchen" data-i18n-aria-label="Bestand durchsuchen">
+
+  <div class="topbar-actions">
+    <button class="btn ghost" id="btnUnifi" hidden>UniFi<span class="badge" id="unifiBadge" hidden></span></button>
+    <button class="btn ghost icon" id="btnTheme" aria-label="Erscheinungsbild wechseln" title="Erscheinungsbild"></button>
+    <button class="btn ghost icon lang-toggle" id="btnLang" title="Sprache / Language" aria-label="Sprache / Language">EN</button>
+    <button class="btn ghost wide-only" id="btnExport" data-i18n="Sichern">Sichern</button>
+    <button class="btn ghost wide-only" id="btnImport" data-i18n="Laden">Laden</button>
+    <button class="btn ghost icon" id="btnSettings" aria-label="Einstellungen" title="Einstellungen" data-i18n-aria-label="Einstellungen" data-i18n-title="Einstellungen">
+      <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="8" r="4.6" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+    </button>
+    <button class="btn ghost icon" id="btnAccount" aria-label="Konto" title="Konto" data-i18n-aria-label="Konto" data-i18n-title="Konto" hidden>
+      <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5.2" r="2.9" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2.6 14.2c.6-2.9 2.8-4.4 5.4-4.4s4.8 1.5 5.4 4.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    </button>
+    <input type="file" id="fileImport" accept="application/json" hidden>
+  </div>
+</header>
+
+<div class="hinweis" id="hinweis" hidden></div>
+
+<div class="layout">
+  <nav class="rail" id="rail" aria-label="Netze" data-i18n-aria-label="Netze">
+    <div class="rail-head">
+      <span data-i18n="Netze">Netze</span>
+      <button class="btn small" id="btnNewVlan" data-i18n="Netz anlegen">Netz anlegen</button>
+    </div>
+    <div class="rail-nav">
+      <button class="vlan-item" id="navOverview">
+        <span class="vlan-item-top"><span class="vlan-name" data-i18n="Übersicht">Übersicht</span></span>
+        <span class="vlan-cidr" data-i18n="Statistik und Auffälligkeiten">Statistik und Auffälligkeiten</span>
+      </button>
+    </div>
+    <ul class="vlan-list" id="vlanList"></ul>
+    <div class="rail-foot" id="railFoot"></div>
+  </nav>
+
+  <main class="main" id="main"></main>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+
+<aside class="drawer" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+  <div class="drawer-head">
+    <h2 id="drawerTitle" data-i18n="Bearbeiten">Bearbeiten</h2>
+    <button class="btn ghost icon" id="drawerClose" aria-label="Schliessen" data-i18n-aria-label="Schliessen">
+      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.6"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="/i18n.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
