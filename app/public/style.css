@@ -362,15 +362,19 @@ body.app > .topbar, body.app > .hinweis { flex: none; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; font-size: 11.5px; color: var(--muted); }
 .legend i { display: inline-block; width: 9px; height: 9px; margin-right: 5px; vertical-align: -1px; }
-.legend i.res, .res-mark { position: relative; }
-.legend i.res::after, .res-mark::after {
+.legend i.res, .typ-mark { position: relative; }
+.legend i.res::after, .typ-mark.res::after {
   content: ''; position: absolute; inset: 0; background: var(--bg);
   clip-path: polygon(55% 0, 100% 0, 100% 45%);
 }
-.res-mark {
+/* Typ-Symbole der Übersicht, in denselben Formen wie im Raster: statisch voll und
+   reserviert mit Ecke (im Raster beide in der Netzfarbe, hier in Textfarbe),
+   DHCP im Schieferton der Leases */
+.typ-mark {
   display: inline-block; width: 11px; height: 11px; margin-right: 6px; vertical-align: -1px;
-  background: var(--muted); border-radius: 2px;
+  background: var(--text); border-radius: 2px;
 }
+.typ-mark.dhcp { background: var(--schiefer); }
 
 /* ---------- Tabelle ---------- */
 

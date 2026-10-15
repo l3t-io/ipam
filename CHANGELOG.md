@@ -3,6 +3,14 @@
 Die Version steht in `server.js` (`APP_VERSION`), wird über `/api/state` ausgeliefert
 und ist in der Oberfläche oben neben der Wortmarke sichtbar.
 
+## 2.0.1 — 15.10.2026
+
+### Changed
+
+- «Usage by type» in the overview shows an icon for every type, in the same shapes as the
+  address grid: static as a full square, reserved with a cut corner, DHCP in the slate
+  colour of DHCP leases.
+
 ## 2.0.0 — 15.10.2026 · Open source
 
 L3T IPAM is now open source under the MIT license. From this version on, the changelog is

@@ -1175,7 +1175,7 @@ function belegBalken(s) {
 function typZahlen(typ, gesamt) {
   return `<div class="ov-typen">${TYPEN.map((ty) => `<div class="ov-typ">
     <div class="ov-typ-num">${zahl(typ[ty.kind])} <span class="dim">${prozent(typ[ty.kind], gesamt)} %</span></div>
-    <div class="ov-typ-label">${ty.kind === 'reserviert' ? '<i class="res-mark" aria-hidden="true"></i>' : ''}${esc(ty.label)}</div>
+    <div class="ov-typ-label"><i class="typ-mark ${ty.kind === 'reserviert' ? 'res' : ty.kind === 'dhcp' ? 'dhcp' : ''}" aria-hidden="true"></i>${esc(ty.label)}</div>
     <div class="ov-typ-text">${esc(ty.text)}</div></div>`).join('')}</div>`;
 }
 

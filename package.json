@@ -1,6 +1,6 @@
 {
   "name": "l3t-ipam",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
   "description": "Schlankes IPAM für das Heimnetz — Netze, Hosts, Belegungsraster, UniFi-Abgleich. Läuft als Container auf der Synology.",
   "license": "MIT",
