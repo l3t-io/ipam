@@ -12,6 +12,17 @@ describe('API', () => {
   before(async () => { srv = await startServer({ env: { IPAM_AUTH: 'off' } }); });
   after(() => srv.stop());
 
+  test('pages link stylesheet and scripts with the version, so caches never serve old files', async () => {
+    const { version } = (await req(srv.base, 'GET', '/api/state')).json;
+    for (const seite of ['/', '/login']) {
+      const html = (await req(srv.base, 'GET', seite)).text;
+      for (const datei of seite === '/' ? ['style.css', 'i18n.js', 'app.js'] : ['style.css', 'i18n.js', 'login.js']) {
+        assert.ok(html.includes(`/${datei}?v=${version}"`), `${seite}: ${datei} without version`);
+      }
+    }
+    assert.equal((await req(srv.base, 'GET', `/style.css?v=${version}`)).status, 200);
+  });
+
   test('state returns version and empty inventory', async () => {
     const r = await req(srv.base, 'GET', '/api/state');
     assert.equal(r.status, 200);

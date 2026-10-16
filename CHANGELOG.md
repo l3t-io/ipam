@@ -3,6 +3,14 @@
 Die Version steht in `server.js` (`APP_VERSION`), wird über `/api/state` ausgeliefert
 und ist in der Oberfläche oben neben der Wortmarke sichtbar.
 
+## 2.1.1 — 16.10.2026
+
+### Fixed
+
+- After an update, a cache in front of the app (e.g. Cloudflare) could still serve the old
+  stylesheet: the colour swatches in zone management stayed empty. Stylesheet and scripts
+  are now linked with the version (`style.css?v=2.1.1`), so every release loads fresh files.
+
 ## 2.1.0 — 16.10.2026 · Zone management
 
 ### New

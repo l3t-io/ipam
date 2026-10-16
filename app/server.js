@@ -3,7 +3,7 @@
 // l3t-ipam - minimal IPAM
 // Node >= 18, no external dependencies.
 
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.1.1';
 
 const http = require('node:http');
 const fs = require('node:fs');
@@ -612,7 +612,12 @@ async function serveStatic(res, pathname) {
   const file = path.resolve(PUBLIC_DIR, rel);
   if (!file.startsWith(PUBLIC_DIR + path.sep)) return send(res, 403, { error: 'Verboten' });
   try {
-    const data = await fsp.readFile(file);
+    let data = await fsp.readFile(file);
+    // Version stamp on stylesheet and script links: a new release always loads fresh files,
+    // even through caches in front of the app (e.g. a CDN that ignores no-cache).
+    if (path.extname(file) === '.html') {
+      data = data.toString('utf8').replace(/((?:href|src)="\/[\w.-]+\.(?:css|js))"/g, `$1?v=${APP_VERSION}"`);
+    }
     res.writeHead(200, {
       'Content-Type': MIME[path.extname(file)] || 'application/octet-stream',
       'Cache-Control': 'no-cache',
