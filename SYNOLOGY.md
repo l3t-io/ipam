@@ -1,291 +1,271 @@
-# L3T IPAM auf der Synology einrichten
+# Setting up L3T IPAM on a Synology
 
-Komplett im Browser, ohne SSH. Zwei Wege:
+[Deutsch](SYNOLOGY.de.md)
 
-- **Variante A — fertiges Image (empfohlen, ab 2.0):** Der Container Manager lädt das
-  Image `ghcr.io/l3t-io/ipam` selbst. Kein Code-Upload, Updates per
-  «Neu erstellen». Braucht Internetzugang der Synology zur GitHub Container Registry.
-- **Variante B — Code einhängen (das ZIP):** Der Container startet das offizielle
-  `node:22-alpine` und führt die Anwendung aus dem hochgeladenen Ordner aus. Funktioniert
-  ohne Registry. So lief es bis 1.x.
+Entirely in the browser, no SSH. Two ways:
 
-Dauer: rund fünf Minuten.
+- **Variant A — ready-made image (recommended, since 2.0):** Container Manager pulls the
+  image `ghcr.io/l3t-io/ipam` itself. No code upload, updates via **Build**. The Synology
+  needs internet access to the GitHub Container Registry.
+- **Variant B — mounted code (the ZIP):** the container runs the official `node:22-alpine`
+  and starts the application from the uploaded folder. Works without a registry. This is
+  how 1.x ran.
 
----
-
-## Variante A — fertiges Image
-
-1. File Station: im gemeinsamen Ordner `docker` den Ordner `l3t-ipam` und darin `data`
-   anlegen. (Fehlt `docker`: Systemsteuerung → Gemeinsamer Ordner → Erstellen.)
-2. Container Manager → **Projekt** → **Erstellen**, Name `l3t-ipam`, Pfad
-   `docker/l3t-ipam`, Quelle **docker-compose.yml erstellen** und den Inhalt von
-   [`deploy/synology/docker-compose.yml`](deploy/synology/docker-compose.yml) einfügen.
-   Eigene Domain bei `IPAM_DOMAIN` eintragen.
-3. **Weiter** → **Fertig**. Dann weiter bei «3. Konto einrichten».
-
-`PUID`/`PGID` bestimmen, wem der Datenordner gehört; `1026`/`100` passt für den ersten
-Benutzer einer Synology. Meldet das Protokoll «could not chown», läuft die App trotzdem.
-
-**Von Variante B umsteigen:** Projekt → **Aktion → Bearbeiten**, den Inhalt der
-Compose-Datei durch die Image-Variante ersetzen, **Speichern**, **Neu erstellen**. Der
-Ordner `data/` bleibt, wie er ist; `app/` kann danach weg.
-
-**Aktualisieren:** Container Manager → **Image** → bei `ghcr.io/l3t-io/ipam` das
-angebotene Update holen, danach Projekt → **Aktion → Neu erstellen**. Die Compose-Datei
-nutzt den Tag `:2` — so kommen alle 2.x-Versionen, aber kein ungeprüfter Sprung auf 3.0.
+Takes about five minutes.
 
 ---
 
-## Variante B — Code einhängen
+## Variant A — ready-made image
 
-## 1. Dateien hochladen (File Station)
+1. File Station: in the shared folder `docker`, create the folder `l3t-ipam` and inside it
+   `data`. (No `docker` folder? Control Panel → Shared Folder → Create.)
+2. Container Manager → **Project** → **Create**, name `l3t-ipam`, path
+   `docker/l3t-ipam`, source **Create docker-compose.yml**, and paste the content of
+   [`deploy/synology/docker-compose.yml`](deploy/synology/docker-compose.yml).
+   Put your own domain into `IPAM_DOMAIN`.
+3. **Next** → **Done**. Then continue with «3. Set up the account».
 
-1. File Station öffnen. Falls der gemeinsame Ordner `docker` fehlt: Systemsteuerung →
-   Gemeinsamer Ordner → Erstellen → Name `docker`.
-2. In den Ordner `docker` wechseln.
-3. Hochladen → die ZIP auswählen.
-4. Rechtsklick auf die hochgeladene ZIP → **Entpacken** → **Hierher entpacken**.
+`PUID`/`PGID` decide who owns the data folder; `1026`/`100` fits the first user of a
+Synology. If the log says «could not chown», the app still runs.
 
-Danach muss die Struktur so aussehen:
+**Switching from variant B:** Project → **Action → Edit**, replace the content of the
+Compose file with the image variant, **Save**, then **Build**. The `data/` folder stays as
+it is; `app/` can go afterwards.
+
+**Updating:** Container Manager → **Image** → take the offered update for
+`ghcr.io/l3t-io/ipam`, then Project → **Action → Build**. The Compose file uses the tag
+`:2` — you get every 2.x version, but no unchecked jump to 3.0.
+
+---
+
+## Variant B — mounted code
+
+## 1. Upload the files (File Station)
+
+1. Open File Station. If the shared folder `docker` is missing: Control Panel → Shared
+   Folder → Create → name `docker`.
+2. Go into the `docker` folder.
+3. Upload → choose the ZIP.
+4. Right-click the uploaded ZIP → **Extract** → **Extract here**.
+
+The structure must then look like this:
 
 ```
 /volume1/docker/l3t-ipam/
 ├── app/
 │   ├── server.js
 │   ├── auth.js
-│   └── public/          (inkl. fonts/, logo.svg und login.html)
+│   └── public/          (incl. fonts/, logo.svg and login.html)
 ├── data/
 └── docker-compose.yml
 ```
 
-Die ZIP kannst du danach löschen.
+You can delete the ZIP afterwards.
 
-> Falls beim Entpacken ein zusätzlicher Zwischenordner entsteht (`l3t-ipam/l3t-ipam/…`),
-> verschiebe den inneren Ordner eine Ebene nach oben. Die Pfade in der Compose-Datei
-> gehen von `/volume1/docker/l3t-ipam` aus.
-
----
-
-## 2. Projekt anlegen (Container Manager)
-
-1. Container Manager öffnen → **Projekt** → **Erstellen**.
-2. Projektname: `l3t-ipam`
-3. Pfad: **Festlegen** → `docker/l3t-ipam` auswählen.
-4. Quelle: **docker-compose.yml verwenden** — die vorhandene Datei wird erkannt und
-   im Editor angezeigt.
-5. **Weiter** → Web-Portal-Einstellungen überspringen → **Weiter** → **Fertig**.
-
-Container Manager lädt `node:22-alpine` herunter und startet den Container. Beim
-ersten Mal dauert das ein bis zwei Minuten.
+> If extracting creates an extra folder level (`l3t-ipam/l3t-ipam/…`), move the inner
+> folder one level up. The paths in the Compose file assume `/volume1/docker/l3t-ipam`.
 
 ---
 
-## 3. Konto einrichten
+## 2. Create the project (Container Manager)
 
-Beim ersten Start gibt es noch kein Konto. Die Anwendung schreibt dafür einen
-Einrichtungscode ins Protokoll:
+1. Open Container Manager → **Project** → **Create**.
+2. Project name: `l3t-ipam`
+3. Path: **Set path** → choose `docker/l3t-ipam`.
+4. Source: **Use existing docker-compose.yml** — the file is detected and shown in the
+   editor.
+5. **Next** → skip the web portal settings → **Next** → **Done**.
 
-1. Container Manager → **Container** → `l3t-ipam` → **Protokoll**.
-2. Dort steht ein Block mit `Einrichtungscode ein Konto anlegen:   ABCD-EFGH-JKLM`.
-3. `http://<synology-ip>:8480` öffnen. Es erscheint «Konto einrichten».
-4. Code, Benutzername und Passwort (mindestens 12 Zeichen) eingeben → **Konto anlegen**.
+Container Manager downloads `node:22-alpine` and starts the container. The first time
+this takes a minute or two.
 
-Der Code gilt bis zum nächsten Neustart des Containers und wird danach nicht mehr
-gebraucht. Ab jetzt erscheint beim Aufruf die Anmeldemaske. Das Passwort liegt nur als
-scrypt-Hash in `data/auth.json`.
+---
 
-Passwort ändern und Abmelden: oben rechts auf das Personensymbol.
+## 3. Set up the account
 
-Weitere Benutzer legst du über das Zahnrad → **Benutzer** an. Es gibt drei Rollen:
+On first start there is no account yet. The application writes a setup code to the log
+for that:
 
-| Rolle | Darf |
+1. Container Manager → **Container** → `l3t-ipam` → **Log**.
+2. There is a block with `setup code to create an account:   ABCD-EFGH-JKLM`.
+3. Open `http://<synology-ip>:8480`. «Set up account» appears.
+4. Enter the code, a user name and a password (at least 12 characters) → **Create
+   account**.
+
+The code is valid until the next container restart and isn't needed afterwards. From now
+on the sign-in page appears. The password is only stored as a scrypt hash in
+`data/auth.json`.
+
+Change password and sign out: the person icon at the top right.
+
+Add more users via the gear → **Users**. There are three roles:
+
+| Role | May |
 |---|---|
-| Administrator | alles, auch Benutzer, UniFi-Einstellungen und Import |
-| Bearbeiten | Netze und Hosts pflegen, den UniFi-Abgleich übernehmen |
-| Lesen | alles ansehen, nichts ändern |
+| Administrator | everything, including users, UniFi settings and import |
+| Editor | maintain networks and hosts, apply the UniFi sync |
+| Viewer | see everything, change nothing |
 
-Das erste Konto ist Administrator. Ein Rollenwechsel wirkt sofort, ohne neue Anmeldung.
-Setzt ein Administrator ein Passwort neu oder löscht ein Konto, ist die Person sofort
-auf allen Geräten abgemeldet. Der letzte Administrator lässt sich weder löschen noch
-herabstufen.
+The first account is an administrator. A role change takes effect immediately, without
+signing in again. When an administrator resets a password or deletes an account, that
+person is signed out on all devices at once. The last administrator can neither be
+deleted nor demoted.
 
-Ist der Port belegt, im Editor bei `ports` die linke Zahl ändern, etwa `8481:8080`,
-und das Projekt neu erstellen.
+If the port is taken, change the left number under `ports` in the editor, e.g.
+`8481:8080`, and build the project again.
 
 ---
 
-## 4. Optional: eigener Name statt Port
+## 4. Optional: a name instead of a port
 
-Systemsteuerung → Anmeldeportal → Erweitert → **Reverse Proxy** → Erstellen:
+Control Panel → Login Portal → Advanced → **Reverse Proxy** → Create:
 
-| Feld | Wert |
+| Field | Value |
 |---|---|
-| Quelle Protokoll | HTTPS |
-| Quelle Hostname | `ipam.example.com` |
-| Quelle Port | 443 |
-| Ziel Protokoll | HTTP |
-| Ziel Hostname | `localhost` |
-| Ziel Port | 8480 |
+| Source protocol | HTTPS |
+| Source hostname | `ipam.example.com` |
+| Source port | 443 |
+| Destination protocol | HTTP |
+| Destination hostname | `localhost` |
+| Destination port | 8480 |
 
-Dazu im DNS einen Eintrag auf die Synology zeigen lassen. Wenn davor ohnehin ein
-Cloudflare-Tunnel steht, zeigt der einfach auf `http://<synology-ip>:8480`.
+Plus a DNS record pointing to the Synology. If a Cloudflare Tunnel sits in front anyway,
+point it at `http://<synology-ip>:8480`.
 
-**Cloudflare Access ist nicht mehr nötig.** Die Anwendung hat eine eigene Anmeldung.
-Die Access-Application für `ipam.example.com` kannst du im Zero-Trust-Dashboard löschen;
-der Tunnel selbst bleibt. Die Zeile `IPAM_TRUST_PROXY: "1"` in der Compose-Datei
-sorgt dafür, dass hinter Tunnel oder Reverse Proxy die echte Absenderadresse zählt.
+**No Cloudflare Access needed.** The application has its own sign-in. The line
+`IPAM_TRUST_PROXY: "1"` in the Compose file makes sure the real client address counts
+behind a tunnel or reverse proxy.
 
 ---
 
-## Anmeldung — was dahinter steckt
+## Sign-in — what's behind it
 
-- Sitzungs-Cookie mit `HttpOnly` und `SameSite=Strict`, über HTTPS zusätzlich `Secure`.
-  Ohne «Angemeldet bleiben» endet die Sitzung nach 12 Stunden Inaktivität, mit nach 30 Tagen.
-- Nach 10 Fehlversuchen innerhalb von 15 Minuten ist die Absenderadresse 15 Minuten
-  gesperrt. Bei mehr als 100 Fehlversuchen pro Stunde insgesamt wird die Anmeldung
-  für alle gebremst — ein Neustart des Containers hebt das auf.
-- Jeder Versuch steht im Protokoll, mit Absenderadresse.
-- `IPAM_TRUST_PROXY: "1"` vertraut den Proxy-Headern von überall. Ist der Port 8480 im
-  LAN direkt erreichbar, kann dort jemand eine falsche Absenderadresse vortäuschen und die
-  Sperre pro Adresse umgehen. Sicherer: nur die Adresse des Proxys eintragen, etwa die
-  des Cloudflare-Tunnel-Containers oder `127.0.0.1` für den Reverse Proxy der Synology —
-  mehrere mit Komma, auch als Netz (`172.16.0.0/12`).
-- Ein Passwortwechsel meldet alle anderen Geräte ab.
+- Session cookie with `HttpOnly` and `SameSite=Strict`, plus `Secure` over HTTPS.
+  Without «Stay signed in» the session ends after 12 hours of inactivity, with it after
+  30 days.
+- After 10 failed attempts within 15 minutes the client address is locked for 15
+  minutes. With more than 100 failed attempts per hour in total, sign-in slows down for
+  everyone — a container restart resets that.
+- Every attempt is logged, with the client address.
+- `IPAM_TRUST_PROXY: "1"` trusts proxy headers from anywhere. If port 8480 is reachable
+  directly on the LAN, someone there can fake a client address and get around the
+  per-address lock. Safer: enter only the proxy's address, e.g. that of the Cloudflare
+  Tunnel container or `127.0.0.1` for the Synology's reverse proxy — several separated by
+  commas, networks work too (`172.16.0.0/12`).
+- Changing the password signs out all other devices.
 
-**Passwort vergessen?** Ein anderer Administrator setzt es über Zahnrad → Benutzer neu.
+**Forgot the password?** Another administrator resets it via gear → Users.
 
-Gibt es keinen anderen Administrator, hilft ein vorübergehendes Notfallkonto:
+If there is no other administrator, a temporary emergency account helps:
 
-1. Container Manager → Projekt → **Aktion → Bearbeiten**, unter `environment` ergänzen:
+1. Container Manager → Project → **Action → Edit**, add under `environment`:
    ```yaml
-         IPAM_USER: notfall
-         IPAM_PASS: ein-langes-einmalpasswort
+         IPAM_USER: emergency
+         IPAM_PASS: a-long-one-time-password
    ```
-2. Projekt neu erstellen, mit `notfall` anmelden und unter Zahnrad → Benutzer das
-   eigene Passwort neu setzen.
-3. Die beiden Zeilen wieder entfernen und das Projekt neu erstellen.
+2. Build the project, sign in as `emergency` and set your own password again under
+   gear → Users.
+3. Remove the two lines and build the project again.
 
-Alle anderen Benutzer bleiben dabei erhalten. Nur als letzter Ausweg: `data/auth.json`
-löschen und neu starten — dann sind **alle** Konten weg, und es erscheint wieder
-«Konto einrichten» mit neuem Code im Protokoll. Der IPAM-Bestand bleibt in beiden
-Fällen unberührt.
+All other users are kept. Only as a last resort: delete `data/auth.json` and restart —
+then **all** accounts are gone, and «Set up account» appears again with a new code in the
+log. The IPAM inventory stays untouched either way.
 
-**Konto fest vorgeben** (statt im Browser einrichten): im Editor unter `environment`
-`IPAM_USER` und `IPAM_PASS` setzen. Das ergibt einen zusätzlichen Administrator, dessen
-Passwort im Klartext in der Compose-Datei steht und sich im Browser nicht ändern lässt —
-für den Alltag ist ein Konto aus dem Browser deshalb der bessere Weg.
+**Fixed account** (instead of setting it up in the browser): set `IPAM_USER` and
+`IPAM_PASS` under `environment` in the editor. That gives an additional administrator
+whose password sits in plain text in the Compose file and can't be changed in the
+browser — for everyday use an account created in the browser is the better way.
 
-**Anmeldung abschalten** (etwa wenn doch wieder Cloudflare Access davor steht):
-`IPAM_AUTH: "off"`. Das Protokoll warnt dann bei jedem Start.
-
----
-
-## UniFi anbinden (optional)
-
-In UniFi einen Schlüssel erzeugen: Network öffnen → Einstellungen → Control Plane →
-Integrationen → **Create New API Key**. Der Schlüssel wird nur einmal angezeigt.
-Das Konto, mit dem du ihn erzeugst, braucht Administratorrechte, und der Schlüssel
-erbt genau dessen Berechtigungen.
-
-Danach in der Oberfläche oben rechts auf das **Zahnrad** → Bereich «UniFi-Anbindung»:
-
-1. Controller-Adresse eintragen, etwa `https://10.1.1.1`.
-2. API-Schlüssel einfügen, Site meist `default`.
-3. **Verbindung testen** — zeigt, wie viele Netze, Geräte und Clients gelesen werden.
-4. **Speichern**. Oben erscheint dann der Knopf «UniFi».
-
-Gespeichert wird in `data/unifi.json`, getrennt vom Bestand. Der Schlüssel taucht
-deshalb weder im Export («Sichern») noch in der Oberfläche wieder auf — dort steht
-nur «gespeichert …abcd». Ein Update oder eine neue Compose-Datei lässt ihn unberührt.
-
-Die **Sicherheitszone** jedes Netzes (zonenbasierte Firewall ab Network 9) wird
-automatisch aus UniFi übernommen und ist dann im Netzformular gesperrt — geändert wird
-sie in UniFi. Für Netze, die UniFi nicht kennt, lässt sie sich von Hand eintragen.
-
-**Zonen verwalten:** Links «Sicherheitszonen» (oder in der Übersicht «Verwalten») listet
-alle Zonen. Zonen aus UniFi legt der Abgleich selbst an, falls es sie noch nicht gibt;
-ihr Name gehört UniFi, Farbe und Beschreibung lassen sich hier ändern. Eigene Zonen
-lassen sich frei anlegen, umbenennen (die Netze ziehen mit) und löschen (die Netze sind
-dann ohne Zone). Ein Netz trägt die Farbe seiner Zone; die eigene Netzfarbe gilt nur für
-Netze ohne Zone. Verschwindet eine Zone aus UniFi, bleibt sie hier als eigene Zone stehen.
-
-**Offline-Geräte:** Unter Zahnrad → UniFi → Offline-Geräte stellst du ein, nach wie
-vielen Tagen ohne Lebenszeichen ein dokumentierter Host als offline gilt, und ob er dann
-automatisch entfernt wird. Vorgabe: nur von Hand, nur DHCP-Einträge, 30 Tage. Geräte, die
-sich nur selten melden (Batteriesensoren und ähnliches), im Host als «sporadisch»
-markieren — die bleiben immer stehen. Vor jedem Entfernen entsteht eine Tagessicherung.
-
-**Zertifikat:** Beim Speichern merkt sich die App das Zertifikat des Controllers und
-prüft es bei jeder Verbindung, bevor der Schlüssel gesendet wird. Meldet der Abgleich
-«Zertifikat des Controllers hat sich geändert», und du hast den Controller gerade
-aktualisiert: die Anbindung unter Zahnrad → UniFi einfach erneut speichern.
-
-Einen neuen Schlüssel trägst du einfach im selben Feld ein. Wird die Adresse geändert,
-muss der Schlüssel neu eingegeben werden — so geht der alte nie an eine andere Adresse.
-
-Wer die Anbindung noch über `IPAM_UNIFI_URL`/`IPAM_UNIFI_KEY` in der Compose-Datei
-hat: Das funktioniert weiter, die Oberfläche zeigt es an. Einmal dort speichern, dann
-gilt die Oberfläche und die Zeilen in der Compose-Datei können weg.
-
-Wichtig: Die Synology muss den Controller erreichen dürfen. Liegt sie in einem
-anderen VLAN, braucht es eine passende Firewall-Regel.
-
-## Daten und Sicherung
-
-Der gesamte Bestand liegt als lesbares JSON in `/volume1/docker/l3t-ipam/data/`:
-
-- `ipam.json` — aktueller Stand, inklusive der Wahl des Erscheinungsbilds
-- `auth.json` — Benutzer, Rollen und Passwort-Hashes
-- `unifi.json` — UniFi-Adresse und API-Schlüssel
-- `ipam-JJJJ-MM-TT.bak.json` — automatische Tagessicherung, die letzten 14 bleiben liegen
-
-Damit erfasst jedes Hyper Backup des `docker`-Ordners auch das IPAM. Zusätzlich lädt
-der Knopf „Sichern“ in der Oberfläche denselben Stand als Datei herunter.
+**Turning sign-in off** (e.g. when Cloudflare Access is in front after all):
+`IPAM_AUTH: "off"`. The log then warns on every start.
 
 ---
 
-## Aktualisieren
+## Connecting UniFi (optional)
 
-Neue Dateien in `app/` per File Station ersetzen, dann im Container Manager beim
-Projekt auf **Aktion → Neu erstellen** klicken. Der Datenordner bleibt unberührt.
-Die laufende Version steht in der Oberfläche oben neben dem Logo.
+Create a key in UniFi: open Network → Settings → Control Plane → Integrations → **Create
+New API Key**. The key is shown only once. The account you create it with needs
+administrator rights, and the key inherits exactly its permissions.
 
-Seit 1.6 liegen alle Einstellungen, die man selbst einträgt (Konto, UniFi), im
-Datenordner. Die Compose-Datei aus dem Paket kann deshalb gefahrlos übernommen werden.
+Then in the web interface, the **gear** at the top right → section «UniFi connection»:
 
-### Von 1.5 auf 1.6
+1. Enter the controller address, e.g. `https://10.1.1.1`.
+2. Paste the API key; the site is usually `default`.
+3. **Test connection** — shows how many networks, devices and clients can be read.
+4. **Save**. A «UniFi» button then appears at the top.
 
-`app/` ersetzen, **Aktion → Neu erstellen**, dann über das Zahnrad die UniFi-Anbindung
-eintragen. Die Compose-Datei muss nicht angepasst werden.
+It's stored in `data/unifi.json`, separate from the inventory. That's why the key shows
+up neither in the export nor in the web interface — there it just says «saved …abcd».
+An update or a new Compose file leaves it untouched.
 
-### Von 1.4 auf 1.5
+The **security zone** of each network (zone-based firewall, Network 9 and later) is taken
+from UniFi automatically and is then locked in the network form — change it in UniFi.
+For networks UniFi doesn't know, you can enter it by hand.
 
-1.5 bringt die eigene Anmeldung und ändert deshalb auch die Compose-Datei.
+**Managing zones:** «Security zones» in the sidebar (or «Manage» in the overview) lists
+all zones. The sync creates zones from UniFi that don't exist yet; their name belongs to
+UniFi, colour and description can be changed here. Your own zones can be created,
+renamed (networks follow) and deleted (networks are then without a zone). A network
+takes the colour of its zone; the network's own colour only applies without a zone. If a
+zone disappears from UniFi, it stays here as a manual zone.
 
-1. Container Manager → Projekt `l3t-ipam` → **Aktion → Stoppen**.
-2. File Station: den Ordner `docker/l3t-ipam/app` löschen und den `app`-Ordner aus der
-   neuen ZIP an seine Stelle legen. `data/` nicht anfassen.
-3. Container Manager → Projekt → **Aktion → Bearbeiten** → im Editor den Inhalt durch
-   die `docker-compose.yml` aus der ZIP ersetzen. Einen geänderten Port wieder
-   ergänzen. **Speichern**.
-4. **Aktion → Neu erstellen**, dann wie unter «3. Konto einrichten» den Code aus dem
-   Protokoll holen.
+**Offline devices:** under gear → UniFi → Offline devices you set after how many days
+without a sign of life a documented host counts as offline, and whether it is then
+removed automatically. Default: manual only, DHCP entries only, 30 days. Mark devices that
+rarely check in (battery sensors and the like) as «sporadic» on the host — those always
+stay. A daily backup is written before anything is removed.
 
-Wichtig ist vor allem der neue Healthcheck auf `/healthz`. Mit der alten Compose-Datei
-läuft die Anwendung zwar, der Container wird aber als «fehlerhaft» angezeigt, weil
-`/api/state` jetzt eine Anmeldung verlangt.
+**Certificate:** when saving, the app remembers the controller's certificate and checks
+it on every connection before the key is sent. If the sync reports «The controller
+certificate has changed» and you've just updated the controller: simply save the
+connection under gear → UniFi again.
 
-## Wenn etwas nicht startet
+To use a new key, just enter it in the same field. When the address changes, the key
+must be entered again — so the old one never goes to a different address.
 
-**`unable to evaluate symlinks in Dockerfile path`** — das Projekt versucht, ein Image
-zu bauen. Die mitgelieferte Compose-Datei tut das nicht, es wird das fertige
-`node:22-alpine` verwendet. Prüfe im Container Manager unter **Aktion → Bearbeiten**,
-ob im Editor eine Zeile `build:` steht. Wenn ja, ersetze den Inhalt durch die
-`docker-compose.yml` aus dem Paket und erstelle das Projekt neu.
+Still have the connection in `IPAM_UNIFI_URL`/`IPAM_UNIFI_KEY` in the Compose file? That
+keeps working, and the web interface shows it. Save it there once; from then on the web
+interface applies and the lines in the Compose file can go.
 
+Important: the Synology must be allowed to reach the controller. If it's in a different
+VLAN, you need a matching firewall rule.
 
+## Data and backup
 
-Sonst: Container Manager → Container → `l3t-ipam` → **Protokoll**. Die Anwendung meldet
-beim Start eine Zeile mit Version, Port und geladenem Bestand. Bleibt sie aus, stimmt
-meist der Pfad nicht: `app/server.js` muss direkt unter dem in der Compose-Datei
-angegebenen Ordner liegen.
+The entire inventory is readable JSON in `/volume1/docker/l3t-ipam/data/`:
+
+- `ipam.json` — current state, including the chosen appearance
+- `auth.json` — users, roles and password hashes
+- `unifi.json` — UniFi address and API key
+- `ipam-YYYY-MM-DD.bak.json` — automatic daily backup, the last 14 are kept
+
+So every Hyper Backup of the `docker` folder includes the IPAM as well. In addition, the
+«Export» button in the web interface downloads the same state as a file.
+
+---
+
+## Updating
+
+Replace the files in `app/` via File Station, then click **Action → Build** on the
+project in Container Manager. The data folder stays untouched. The running version is
+shown in the web interface next to the logo.
+
+All settings you enter yourself (account, UniFi) live in the data folder, so the Compose
+file from the package can be taken over safely.
+
+**Coming from 1.4 or older:** also replace the Compose file with the one from the ZIP
+(Project → **Action → Edit**, keep a changed port). It has the health check on
+`/healthz`; with the old one the app runs, but the container shows as «unhealthy». Then
+fetch the setup code as in «3. Set up the account».
+
+## If something doesn't start
+
+**`unable to evaluate symlinks in Dockerfile path`** — the project tries to build an
+image. The supplied Compose file doesn't do that; it uses the ready-made image. In
+Container Manager, check under **Action → Edit** whether the editor contains a `build:`
+line. If so, replace the content with the `docker-compose.yml` from the package and build
+the project again.
+
+Otherwise: Container Manager → Container → `l3t-ipam` → **Log**. On start the application
+logs a line with version, port and loaded inventory. If it's missing, the path is usually
+wrong: `app/server.js` must sit directly in the folder given in the Compose file.

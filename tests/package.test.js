@@ -57,7 +57,7 @@ test('Synology package is complete and clean', () => {
     'l3t-ipam/app/server.js', 'l3t-ipam/app/auth.js', 'l3t-ipam/app/unifi.js',
     'l3t-ipam/app/public/index.html', 'l3t-ipam/app/public/login.html', 'l3t-ipam/app/public/login.js', 'l3t-ipam/app/public/i18n.js',
     'l3t-ipam/app/public/fonts/plex-mono-400.woff2', 'l3t-ipam/docker-compose.yml',
-    'l3t-ipam/SYNOLOGY.md', 'l3t-ipam/data/.keep', 'l3t-ipam/LICENSE',
+    'l3t-ipam/SYNOLOGY.md', 'l3t-ipam/SYNOLOGY.de.md', 'l3t-ipam/data/.keep', 'l3t-ipam/LICENSE',
   ]) assert.ok(zip.has(pflicht), `missing: ${pflicht}`);
 
   // No data, no tests, no repo internals.

@@ -6,7 +6,7 @@ Netze und Hosts dokumentieren, jede Adresse auf einen Blick sehen und die Dokume
 mit dem UniFi-Controller abgleichen. Ein kleiner Container, keine Datenbank, keine
 Abhängigkeiten.
 
-[English](README.md) · [Changelog](CHANGELOG.md) · [Anleitung Synology](SYNOLOGY.md)
+[English](README.md) · [Changelog](CHANGELOG.md) · [Anleitung Synology](SYNOLOGY.de.md)
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M2P628W1P2)
 
@@ -94,7 +94,7 @@ docker compose logs l3t-ipam    # zeigt den einmaligen Einrichtungscode
 erste Konto anlegen — es wird Administrator. Images gibt es für `linux/amd64` und
 `linux/arm64` (Raspberry Pi 4/5).
 
-**Synology:** Schritt für Schritt in [SYNOLOGY.md](SYNOLOGY.md).
+**Synology:** Schritt für Schritt in [SYNOLOGY.de.md](SYNOLOGY.de.md).
 
 ## UniFi anbinden
 

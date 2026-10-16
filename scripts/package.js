@@ -14,12 +14,12 @@ const PREFIX = 'l3t-ipam/';
 // What goes into the package. Everything else (tests, scripts, repo files) stays out.
 // Entries are repo paths; [source, target] stores a file under a different name.
 const COMPOSE = 'deploy/synology-mount/docker-compose.yml';
-const INHALT = ['app', 'data/.keep', [COMPOSE, 'docker-compose.yml'], 'SYNOLOGY.md', 'CHANGELOG.md', 'LICENSE'];
+const INHALT = ['app', 'data/.keep', [COMPOSE, 'docker-compose.yml'], 'SYNOLOGY.md', 'SYNOLOGY.de.md', 'CHANGELOG.md', 'LICENSE'];
 const PFLICHT = [
   'app/server.js', 'app/auth.js', 'app/unifi.js',
   'app/public/index.html', 'app/public/app.js', 'app/public/login.html', 'app/public/login.js', 'app/public/i18n.js',
   'app/public/style.css', 'app/public/logo.svg', 'app/public/icon.svg',
-  COMPOSE, 'SYNOLOGY.md', 'data/.keep', 'LICENSE',
+  COMPOSE, 'SYNOLOGY.md', 'SYNOLOGY.de.md', 'data/.keep', 'LICENSE',
 ];
 
 function version() {

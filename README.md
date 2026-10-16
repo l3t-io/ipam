@@ -6,7 +6,7 @@ Document your networks and hosts, see every address at a glance, and keep the
 documentation in sync with your UniFi controller. One small container, no database,
 no dependencies.
 
-[Deutsch](README.de.md) · [Changelog](CHANGELOG.md) · [Synology guide (DE)](SYNOLOGY.md)
+[Deutsch](README.de.md) · [Changelog](CHANGELOG.md) · [Synology guide](SYNOLOGY.md)
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M2P628W1P2)
 
@@ -87,7 +87,7 @@ Open `http://<host>:8080`, enter the setup code from the log and create the firs
 account — it becomes Administrator. Images are built for `linux/amd64` and `linux/arm64`
 (Raspberry Pi 4/5).
 
-**Synology:** see the step-by-step guide in [SYNOLOGY.md](SYNOLOGY.md) (German).
+**Synology:** see the step-by-step guide in [SYNOLOGY.md](SYNOLOGY.md).
 
 ## Connecting UniFi
 
