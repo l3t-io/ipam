@@ -26,7 +26,8 @@ Takes about five minutes.
 3. **Next** → **Done**. Then continue with «3. Set up the account».
 
 `PUID`/`PGID` decide who owns the data folder; `1026`/`100` fits the first user of a
-Synology. If the log says «could not chown», the app still runs.
+Synology. If the log says «could not chown» or «may not write», the app still runs, as
+root then. Cleaner is to give the folder the permission, see «If something doesn't start».
 
 **Switching from variant B:** Project → **Action → Edit**, replace the content of the
 Compose file with the image variant, **Save**, then **Build**. The `data/` folder stays as
@@ -265,6 +266,18 @@ image. The supplied Compose file doesn't do that; it uses the ready-made image. 
 Container Manager, check under **Action → Edit** whether the editor contains a `build:`
 line. If so, replace the content with the `docker-compose.yml` from the package and build
 the project again.
+
+**`EACCES: permission denied, open '/data/…'`** — the container may not write to the data
+folder. On a Synology the File Station permissions decide, not the folder's owner. To
+grant them:
+
+1. File Station → `docker/l3t-ipam` → right-click `data` → **Properties** →
+   **Permission** → **Create**.
+2. User or group: **Everyone**, tick **Read** and **Write** → **Done**.
+3. Tick **Apply to this folder, sub-folders and files** → **Save**.
+4. Container Manager → Project → **Action → Build**.
+
+Instead of **Everyone**, the user matching `PUID` works too (via SSH: `id`).
 
 Otherwise: Container Manager → Container → `l3t-ipam` → **Log**. On start the application
 logs a line with version, port and loaded inventory. If it's missing, the path is usually

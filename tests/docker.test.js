@@ -36,6 +36,14 @@ test('entrypoint script: POSIX shell, Unix line endings, drops root privileges',
   assert.match(s, /su-exec "\$PUID:\$PGID" "\$@"/);
 });
 
+test('entrypoint script tests writing as PUID before dropping root', () => {
+  const s = lies('docker/entrypoint.sh');
+  const probe = s.indexOf('su-exec "$PUID:$PGID" sh -c');
+  assert.ok(probe > 0, 'write test as PUID:PGID');
+  assert.ok(probe < s.indexOf('exec su-exec "$PUID:$PGID" "$@"'), 'test comes before the switch');
+  assert.match(s, /may not write to \$DATA/);
+});
+
 test('entrypoint script without root runs the command directly', { skip: process.platform === 'win32' && !fs.existsSync('C:/Program Files/Git/bin/sh.exe') }, () => {
   const sh = process.platform === 'win32' ? 'C:/Program Files/Git/bin/sh.exe' : '/bin/sh';
   const out = execFileSync(sh, [path.join(ROOT, 'docker/entrypoint.sh'), 'echo', 'gestartet'], {

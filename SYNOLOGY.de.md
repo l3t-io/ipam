@@ -26,7 +26,9 @@ Dauer: rund fünf Minuten.
 3. **Weiter** → **Fertig**. Dann weiter bei «3. Konto einrichten».
 
 `PUID`/`PGID` bestimmen, wem der Datenordner gehört; `1026`/`100` passt für den ersten
-Benutzer einer Synology. Meldet das Protokoll «could not chown», läuft die App trotzdem.
+Benutzer einer Synology. Meldet das Protokoll «could not chown» oder «may not write»,
+läuft die App trotzdem, dann als root. Sauberer ist es, dem Ordner die Berechtigung zu
+geben, siehe «Wenn etwas nicht startet».
 
 **Von Variante B umsteigen:** Projekt → **Aktion → Bearbeiten**, den Inhalt der
 Compose-Datei durch die Image-Variante ersetzen, **Speichern**, **Neu erstellen**. Der
@@ -284,6 +286,19 @@ zu bauen. Die mitgelieferte Compose-Datei tut das nicht, es wird das fertige
 `node:22-alpine` verwendet. Prüfe im Container Manager unter **Aktion → Bearbeiten**,
 ob im Editor eine Zeile `build:` steht. Wenn ja, ersetze den Inhalt durch die
 `docker-compose.yml` aus dem Paket und erstelle das Projekt neu.
+
+**`EACCES: permission denied, open '/data/…'`** — der Container darf nicht in den
+Datenordner schreiben. Auf der Synology entscheiden die Berechtigungen der File Station,
+nicht der Eigentümer des Ordners. So gibst du sie:
+
+1. File Station → `docker/l3t-ipam` → Rechtsklick auf `data` → **Eigenschaften** →
+   **Berechtigung** → **Erstellen**.
+2. Benutzer oder Gruppe: **Everyone**, Berechtigung **Lesen** und **Schreiben** anhaken
+   → **Fertig**.
+3. **Auf diesen Ordner, Unterordner und Dateien anwenden** anhaken → **Speichern**.
+4. Container Manager → Projekt → **Aktion → Neu erstellen**.
+
+Statt **Everyone** geht auch der Benutzer, der zu `PUID` passt (per SSH: `id`).
 
 Sonst: Container Manager → Container → `l3t-ipam` → **Protokoll**. Die Anwendung meldet
 beim Start eine Zeile mit Version, Port und geladenem Bestand. Bleibt sie aus, stimmt

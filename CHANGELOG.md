@@ -3,6 +3,17 @@
 Die Version steht in `server.js` (`APP_VERSION`), wird über `/api/state` ausgeliefert
 und ist in der Oberfläche oben neben der Wortmarke sichtbar.
 
+## Unreleased
+
+### Fixed
+
+- **Synology: `EACCES: permission denied, open '/data/auth.json.tmp'`.** On shares with
+  DSM permissions (ACLs), `chown` to `PUID`/`PGID` succeeds, but the user may still not
+  write — the app started without root and then failed on its first save. The container
+  now tests writing as `PUID`/`PGID` before dropping root; if that fails, it logs a warning
+  and keeps running as root, like after a failed `chown`. The Synology guide explains how
+  to give the data folder the permission.
+
 ## 2.1.2 — 16.10.2026
 
 ### Security
