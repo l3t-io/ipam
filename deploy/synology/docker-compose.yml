@@ -1,5 +1,5 @@
-# Synology Container Manager — fertiges Image, kein Code-Upload nötig.
-# Anleitung: SYNOLOGY.md
+# Synology Container Manager — ready-made image, no code upload needed.
+# Instructions: SYNOLOGY.md
 services:
   l3t-ipam:
     image: ghcr.io/l3t-io/ipam:2
@@ -10,14 +10,14 @@ services:
     volumes:
       - /volume1/docker/l3t-ipam/data:/data
     environment:
-      # Erster Benutzer der Synology ist meist 1026, Gruppe «users» ist 100.
-      # Prüfen: Systemsteuerung → Terminal & SNMP → SSH, dann `id` — oder einfach so lassen.
+      # The first Synology user is usually 1026, the group «users» is 100.
+      # To check: Control Panel → Terminal & SNMP → SSH, then `id` — or just leave it as is.
       PUID: "1026"
       PGID: "100"
-      IPAM_DOMAIN: home.arpa   # eigene Domain eintragen, etwa l3t.io
+      IPAM_DOMAIN: home.arpa   # enter your own domain, e.g. l3t.io
       IPAM_LANG: de
       TZ: Europe/Zurich
-      # Hinter Cloudflare-Tunnel oder Reverse Proxy der Synology aktiv lassen
+      # Keep enabled behind a Cloudflare Tunnel or the Synology reverse proxy
       IPAM_TRUST_PROXY: "1"
     security_opt:
       - no-new-privileges:true

@@ -1,6 +1,6 @@
 'use strict';
 
-// Feste Reservierungen sauber erkennen, Offline-Geräte finden und aufräumen.
+// Detect fixed reservations cleanly, find offline devices and clean them up.
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -9,26 +9,26 @@ const { startServer, req } = require('./helpers');
 const { startFakeUnifi } = require('./fake-unifi');
 
 const TAG = 86400000;
-const vorTagen = (n) => Math.floor((Date.now() - n * TAG) / 1000); // UniFi zählt in Sekunden
+const vorTagen = (n) => Math.floor((Date.now() - n * TAG) / 1000); // UniFi counts in seconds
 
-describe('Erkennung fester Reservierungen', () => {
-  test('liegengebliebenes fixed_ip ohne Schalter ist keine Reservierung', () => {
+describe('Detecting fixed reservations', () => {
+  test('leftover fixed_ip without the switch is not a reservation', () => {
     const c = normalizeClient({
       mac: 'BC-24-11-00-00-23', name: 'old-vm', use_fixedip: false, fixed_ip: '10.0.80.10', last_ip: '10.0.80.99', last_seen: vorTagen(90),
     });
     assert.equal(c.fixed, false);
-    assert.equal(c.ip, '10.0.80.99', 'die zuletzt genutzte Adresse, nicht die alte feste');
+    assert.equal(c.ip, '10.0.80.99', 'the last used address, not the old fixed one');
     assert.equal(c.mac, 'bc:24:11:00:00:23');
     assert.ok(c.lastSeen > 0 && c.lastSeen < Date.now() - 89 * TAG);
   });
 
-  test('mit Schalter ist es eine Reservierung auf die feste Adresse', () => {
+  test('with the switch it is a reservation on the fixed address', () => {
     const c = normalizeClient({ mac: 'aa:bb:cc:00:00:01', use_fixedip: true, fixed_ip: '10.0.80.10', last_ip: '10.0.80.99' });
     assert.equal(c.fixed, true);
     assert.equal(c.ip, '10.0.80.10');
   });
 
-  test('alte Einträge erscheinen im Abgleich nicht mehr als Reservierung', () => {
+  test('old entries no longer appear as reservations in the comparison', () => {
     const DMZ = { id: 'v', name: 'DMZ', vid: 80, cidr: '10.0.80.0/24', gateway: '10.0.80.1' };
     const clients = [
       normalizeClient({ mac: 'bc:24:11:00:00:23', name: 'old-vm', use_fixedip: false, fixed_ip: '10.0.80.10', last_seen: vorTagen(90) }),
@@ -42,25 +42,25 @@ describe('Erkennung fester Reservierungen', () => {
   });
 });
 
-describe('Offline-Kandidaten', () => {
+describe('Offline candidates', () => {
   const NETZ = { id: 'v', name: 'IoT', vid: 30, cidr: '10.30.0.0/24' };
   const host = (n, kind, extra = {}) => ({ id: `h${n}`, vlanId: 'v', ip: `10.30.0.${n}`, hostname: `g${n}`, mac: `aa:bb:cc:00:00:${n}`, kind, ...extra });
   const unifi = (clients, live = [], devices = []) => ({ clients, live, devices });
   const bekannt = (n, tage) => ({ mac: `aa:bb:cc:00:00:${n}`, lastSeen: Date.now() - tage * TAG });
 
-  test('nur DHCP-Einträge über der Frist, alles Unsichere bleibt', () => {
+  test('only DHCP entries past the threshold, anything uncertain stays', () => {
     const state = {
       vlans: [NETZ],
       settings: { offline: { tage: 30 } },
       hosts: [
-        host(10, 'dhcp'),                          // 40 Tage weg → Kandidat
-        host(11, 'dhcp'),                          // 5 Tage weg → zu frisch
-        host(12, 'dhcp', { sporadisch: true }),    // sporadisch → nie
-        host(13, 'statisch'),                      // statisch → ohne alleTypen nie
+        host(10, 'dhcp'),                          // gone 40 days → candidate
+        host(11, 'dhcp'),                          // gone 5 days → too recent
+        host(12, 'dhcp', { sporadisch: true }),    // sporadic → never
+        host(13, 'statisch'),                      // static → never without alleTypen
         host(14, 'dhcp'),                          // online
-        host(15, 'dhcp'),                          // UniFi kennt die MAC nicht
-        host(16, 'dhcp'),                          // UniFi-Gerät
-        { ...host(17, 'dhcp'), mac: '' },          // ohne MAC
+        host(15, 'dhcp'),                          // UniFi does not know the MAC
+        host(16, 'dhcp'),                          // UniFi device
+        { ...host(17, 'dhcp'), mac: '' },          // no MAC
       ],
     };
     const r = offlineKandidaten(state, unifi(
@@ -73,15 +73,15 @@ describe('Offline-Kandidaten', () => {
     assert.equal(r.ohneDaten, 1);
   });
 
-  test('mit alleTypen auch statische und reservierte', () => {
+  test('with alleTypen also static and reserved ones', () => {
     const state = { vlans: [NETZ], settings: { offline: { tage: 30, alleTypen: true } }, hosts: [host(13, 'statisch'), host(18, 'reserviert')] };
     const r = offlineKandidaten(state, unifi([bekannt(13, 60), bekannt(18, 31)]));
     assert.deepEqual(r.kandidaten.map((k) => k.ip), ['10.30.0.13', '10.30.0.18']);
   });
 });
 
-describe('Aufräumen über die Schnittstelle', () => {
-  // Bekannte Clients im Controller: alle seit 40 Tagen weg, keiner fest reserviert.
+describe('Cleanup via the API', () => {
+  // Known clients in the controller: all gone for 40 days, none with a fixed reservation.
   const known = [10, 11, 12, 13, 14, 15].map((n) => ({
     mac: `aa:bb:cc:00:01:${n}`, name: `g${n}`, use_fixedip: false, fixed_ip: `10.13.20.${n}`, last_seen: vorTagen(40),
   }));
@@ -98,11 +98,11 @@ describe('Aufräumen über die Schnittstelle', () => {
   }
   const ips = async (srv) => (await req(srv.base, 'GET', '/api/state')).json.hosts.map((h) => h.ip).sort();
 
-  test('Abgleich: keine falschen Reservierungen, Offline-Gruppe, Entfernen per Auswahl', async () => {
+  test('comparison: no false reservations, offline group, removal by selection', async () => {
     const { ctl, srv } = await aufbau([[10, 'dhcp'], [11, 'dhcp', { sporadisch: true }], [12, 'statisch']]);
     try {
       const d = await req(srv.base, 'GET', '/api/unifi/diff?refresh=1');
-      assert.deepEqual(d.json.hosts, [], 'liegengebliebene fixed_ip sind keine Reservierungen');
+      assert.deepEqual(d.json.hosts, [], 'leftover fixed_ip entries are not reservations');
       assert.deepEqual(d.json.offline.kandidaten.map((k) => k.ip), ['10.13.20.10']);
       const a = await req(srv.base, 'POST', '/api/unifi/apply', { body: { keys: ['off:' + d.json.offline.kandidaten[0].id] } });
       assert.equal(a.status, 200, a.text);
@@ -111,7 +111,7 @@ describe('Aufräumen über die Schnittstelle', () => {
     } finally { await srv.stop(); await ctl.stop(); }
   });
 
-  test('Einstellung speichern und von Hand aufräumen', async () => {
+  test('save setting and clean up manually', async () => {
     const { ctl, srv } = await aufbau([[10, 'dhcp'], [11, 'dhcp'], [12, 'statisch'], [13, 'dhcp', { sporadisch: true }],
       [14, 'statisch'], [15, 'statisch']]);
     try {
@@ -128,7 +128,7 @@ describe('Aufräumen über die Schnittstelle', () => {
     } finally { await srv.stop(); await ctl.stop(); }
   });
 
-  test('Schutz: zu viele auf einmal → nichts wird entfernt', async () => {
+  test('safeguard: too many at once → nothing is removed', async () => {
     const { ctl, srv } = await aufbau([[10, 'dhcp'], [11, 'dhcp'], [12, 'dhcp'], [13, 'dhcp'], [14, 'dhcp']]);
     try {
       const r = await req(srv.base, 'POST', '/api/unifi/offline/run');
@@ -138,7 +138,7 @@ describe('Aufräumen über die Schnittstelle', () => {
     } finally { await srv.stop(); await ctl.stop(); }
   });
 
-  test('«sporadisch» bleibt beim Bearbeiten anderer Felder erhalten und lässt sich ausschalten', async () => {
+  test('«sporadisch» is kept when editing other fields and can be switched off', async () => {
     const { ctl, srv } = await aufbau([[13, 'dhcp', { sporadisch: true }]]);
     try {
       const h = (await req(srv.base, 'GET', '/api/state')).json.hosts[0];
@@ -148,8 +148,8 @@ describe('Aufräumen über die Schnittstelle', () => {
   });
 });
 
-describe('Rechte rund um die Einstellungen', () => {
-  test('über das Erscheinungsbild lassen sich keine anderen Einstellungen schreiben', async () => {
+describe('Permissions around the settings', () => {
+  test('the appearance setting cannot be used to write other settings', async () => {
     const srv = await startServer();
     try {
       const admin = (await req(srv.base, 'POST', '/api/auth/setup', { body: { code: srv.setupCode(), user: 'tony', password: 'korrekt-pferd-batterie' } })).cookie;
@@ -160,7 +160,7 @@ describe('Rechte rund um die Einstellungen', () => {
       assert.equal(r.status, 200);
       const s = (await req(srv.base, 'GET', '/api/state', { cookie: admin })).json.settings;
       assert.equal(s.theme, 'dark');
-      assert.equal(s.offline.auto, false, 'Offline-Einstellung unverändert');
+      assert.equal(s.offline.auto, false, 'offline setting unchanged');
       assert.equal((await req(srv.base, 'PUT', '/api/unifi/offline', { cookie: gast, body: { auto: true, tage: 1 } })).status, 403);
       assert.equal((await req(srv.base, 'POST', '/api/unifi/offline/run', { cookie: gast })).status, 403);
     } finally {

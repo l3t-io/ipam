@@ -1,6 +1,6 @@
 'use strict';
 
-// Zertifikat des Controllers merken und prüfen (trust on first use).
+// Remember and verify the controller's certificate (trust on first use).
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -24,36 +24,36 @@ const freierPort = () => new Promise((ok) => {
   s.listen(0, '127.0.0.1', () => { const { port } = s.address(); s.close(() => ok(port)); });
 });
 
-describe('Zertifikat des Controllers', () => {
-  test('wird beim Speichern gemerkt; ein anderes Zertifikat bricht ab, bevor der Schlüssel gesendet wird', async () => {
+describe('Controller certificate', () => {
+  test('is remembered on save; a different certificate aborts before the key is sent', async () => {
     const ctl = await startFakeUnifi({ tls: A });
     const srv = await startServer({ env: { IPAM_AUTH: 'off' } });
     try {
       const t = await req(srv.base, 'POST', '/api/unifi/test', { body: { url: ctl.url, key: ctl.key, site: 'default' } });
       assert.equal(t.json.ok, true, t.json.error);
-      assert.equal(t.json.zertifikat, fp(A), 'Test zeigt den Fingerabdruck');
+      assert.equal(t.json.zertifikat, fp(A), 'test shows the fingerprint');
 
       const s = await req(srv.base, 'PUT', '/api/unifi/config', { body: { url: ctl.url, key: ctl.key, site: 'default' } });
       assert.equal(s.json.zertifikat, fp(A));
       assert.equal((await req(srv.base, 'GET', '/api/unifi/diff?refresh=1')).status, 200);
 
-      // Jemand schaltet sich mit einem anderen Zertifikat dazwischen
+      // Someone steps in between with a different certificate
       ctl.zertifikatTauschen(B);
       const vorher = ctl.seenKeys.length;
-      await new Promise((r) => setTimeout(r, 5100)); // «Neu abfragen» ist auf alle 5 s begrenzt
+      await new Promise((r) => setTimeout(r, 5100)); // «Refresh» is limited to once every 5 s
       const d = await req(srv.base, 'GET', '/api/unifi/diff?refresh=1');
       assert.equal(d.status, 400);
       assert.match(d.json.error, /Zertifikat des Controllers hat sich geändert/);
-      assert.equal(ctl.seenKeys.length, vorher, 'keine einzige Anfrage mit Schlüssel erreichte den Server');
+      assert.equal(ctl.seenKeys.length, vorher, 'not a single request with the key reached the server');
 
-      // Bewusst bestätigen: erneut speichern (Schlüssel leer lassen)
+      // Confirm deliberately: save again (leave the key empty)
       const neu = await req(srv.base, 'PUT', '/api/unifi/config', { body: { url: ctl.url, key: '', site: 'default' } });
       assert.equal(neu.json.zertifikat, fp(B));
       assert.equal((await req(srv.base, 'GET', '/api/unifi/diff?refresh=1')).status, 200);
     } finally { await srv.stop(); await ctl.stop(); }
   });
 
-  test('Fingerabdruck übersteht einen Neustart und steht nicht in der Antwort von /api/state', async () => {
+  test('fingerprint survives a restart and is not in the /api/state response', async () => {
     const ctl = await startFakeUnifi({ tls: A });
     let srv = await startServer({ env: { IPAM_AUTH: 'off' } });
     try {
@@ -68,7 +68,7 @@ describe('Zertifikat des Controllers', () => {
     } finally { await srv.stop(); await ctl.stop(); }
   });
 
-  test('war der Controller beim Speichern nicht erreichbar, wird bei der ersten Verbindung gemerkt', async () => {
+  test('if the controller was unreachable on save, it is remembered on the first connection', async () => {
     const port = await freierPort();
     const srv = await startServer({ env: { IPAM_AUTH: 'off' } });
     let ctl;
@@ -81,7 +81,7 @@ describe('Zertifikat des Controllers', () => {
     } finally { await srv.stop(); if (ctl) await ctl.stop(); }
   });
 
-  test('mit «Zertifikat prüfen» (CA) wird nichts gemerkt', async () => {
+  test('with «Verify certificate» (CA) nothing is remembered', async () => {
     const ctl = await startFakeUnifi({ tls: A });
     const srv = await startServer({ env: { IPAM_AUTH: 'off' } });
     try {

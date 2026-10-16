@@ -1,4 +1,4 @@
-/* l3t ipam — Kupfer auf Papier oder auf Kohle. IBM Plex Mono. */
+/* l3t ipam — copper on paper or on charcoal. IBM Plex Mono. */
 
 @font-face {
   font-family: 'IBM Plex Mono';
@@ -16,15 +16,15 @@
   font-weight: 600; font-style: normal; font-display: swap;
 }
 
-/* Markenwerte, in beiden Erscheinungsbildern gleich */
+/* Brand values, the same in both appearances */
 :root {
-  --kupfer: #B4551E;        /* Schaltflächen, Verweise */
-  --kupfer-hell: #E07A22;   /* Logo, Hervorhebung auf dunklem Grund */
-  --kupfer-tief: #8F4218;   /* gedrückt */
+  --kupfer: #B4551E;        /* buttons, links */
+  --kupfer-hell: #E07A22;   /* logo, highlight on dark background */
+  --kupfer-tief: #8F4218;   /* pressed */
   --auf-kupfer: #FFFFFF;
   --kopf: #1C1C1A;
 
-  /* Netzfarben nach TIA-568B, in beiden Erscheinungsbildern lesbar */
+  /* Network colours after TIA-568B, readable in both appearances */
   --blau: #3D7CB8;
   --kupferton: #B4551E;
   --gruen: #3E8C57;
@@ -32,11 +32,11 @@
   --schiefer: #6E7C8C;
   --violett: #7A5FB8;
   --gateway: #C8912B;
-  --orange: var(--kupferton);   /* Altbestand aus 1.1.0 */
+  --orange: var(--kupferton);   /* legacy from 1.1.0 */
 
-  /* Zonenfarben: geprüft auf Unterscheidbarkeit aller Paare (dataviz-Validator).
-     Rot und Grün sind bei Rot-Grün-Schwäche nicht trennbar — die Zone steht deshalb
-     immer auch als Text daneben. Dunkle Abstufungen unten bei den Erscheinungsbildern. */
+  /* Zone colours: every pair checked for distinguishability (dataviz validator).
+     Red and green cannot be told apart with red-green colour blindness — so the zone is
+     always shown as text as well. Dark variants below with the appearances. */
   --zf-rot: #C8402F;
   --zf-bernstein: #D99A00;
   --zf-gruen: #2E8B3E;
@@ -44,13 +44,13 @@
   --zf-violett: #8B4CC0;
   --zf-rosa: #E87BA4;
   --zf-grau: #6E7C8C;
-  --auf-hell: #1C1C1A;          /* Schrift auf hellen Zonenfarben (Hotspot, Server) */
+  --auf-hell: #1C1C1A;          /* text on light zone colours (Hotspot, Server) */
 
   --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --r: 2px;
 }
 
-/* Hell — die Werte aus dem l3t-Branding */
+/* Light — the values from the l3t branding */
 :root, [data-theme="light"] {
   --bg: #F2F1EF;
   --surface: #FFFFFF;
@@ -110,7 +110,7 @@
   }
 }
 
-/* Das hidden-Attribut muss jede display-Regel überstimmen. */
+/* The hidden attribute must override every display rule. */
 [hidden] { display: none !important; }
 
 * { box-sizing: border-box; }
@@ -129,7 +129,7 @@ html, body {
 button, input, select, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-/* ---------- Kopfleiste ---------- */
+/* ---------- Top bar ---------- */
 
 .topbar {
   display: flex;
@@ -189,7 +189,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   cursor: pointer;
 }
 
-/* ---------- Schaltflächen ---------- */
+/* ---------- Buttons ---------- */
 
 .btn {
   display: inline-flex;
@@ -215,10 +215,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .btn.destructive { color: var(--danger); border-color: transparent; background: transparent; }
 .btn.destructive:hover { border-color: var(--danger); }
 
-/* ---------- Grundraster ---------- */
+/* ---------- Base layout ---------- */
 
-/* Die Seite selbst scrollt nicht: Kopfleiste oben fest, darunter Navigation und
-   Hauptbereich mit je eigenem Scrollbereich. Der Fuss der Navigation bleibt sichtbar. */
+/* The page itself does not scroll: top bar fixed at the top, below it navigation and
+   main area, each with its own scroll area. The navigation footer stays visible. */
 body.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
 body.app > .topbar, body.app > .hinweis { flex: none; }
 
@@ -288,7 +288,7 @@ body.app > .topbar, body.app > .hinweis { flex: none; }
 
 .main { flex: 1; min-width: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 24px 60px; }
 
-/* ---------- Netz-Detail ---------- */
+/* ---------- Network detail ---------- */
 
 .detail-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px; }
 .detail-head h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -.015em; }
@@ -319,7 +319,7 @@ body.app > .topbar, body.app > .hinweis { flex: none; }
 .stat-num { font-size: 18px; font-weight: 500; }
 .stat-label { font-size: 11.5px; color: var(--faint); }
 
-/* ---------- Belegungsraster ---------- */
+/* ---------- Address grid ---------- */
 
 .grid-wrap { margin: 16px 0 8px; max-width: 620px; }
 .grid-row { display: flex; align-items: center; gap: 2px; margin-bottom: 2px; }
@@ -343,12 +343,12 @@ body.app > .topbar, body.app > .hinweis { flex: none; }
   transition: transform .08s ease;
 }
 .cell:hover { transform: scale(1.3); position: relative; z-index: 2; }
-/* DHCP-Bereich: heller Ton der Lease-Farbe, damit Bereich und Leases zusammengehören */
+/* DHCP range: light tone of the lease colour, so range and leases visibly belong together */
 .cell.pool { background: var(--zelle-pool); }
 .cell.edge { background: var(--zelle-rand); cursor: default; }
 .cell.used { background: var(--dot, var(--accent)); }
 .cell.dhcp { background: var(--schiefer); }
-/* Reserviert: Netzfarbe wie statisch, dazu eine abgeschnittene Ecke oben rechts */
+/* Reserved: network colour like static, plus a clipped corner at the top right */
 .cell.reserved { position: relative; }
 .cell.reserved::after {
   content: '';
@@ -367,16 +367,16 @@ body.app > .topbar, body.app > .hinweis { flex: none; }
   content: ''; position: absolute; inset: 0; background: var(--bg);
   clip-path: polygon(55% 0, 100% 0, 100% 45%);
 }
-/* Typ-Symbole der Übersicht, in denselben Formen wie im Raster: statisch voll und
-   reserviert mit Ecke (im Raster beide in der Netzfarbe, hier in Textfarbe),
-   DHCP im Schieferton der Leases */
+/* Type symbols in the overview, in the same shapes as in the grid: static solid and
+   reserved with a corner (both in the network colour in the grid, in text colour here),
+   DHCP in the slate tone of the leases */
 .typ-mark {
   display: inline-block; width: 11px; height: 11px; margin-right: 6px; vertical-align: -1px;
   background: var(--text); border-radius: 2px;
 }
 .typ-mark.dhcp { background: var(--schiefer); }
 
-/* ---------- Tabelle ---------- */
+/* ---------- Table ---------- */
 
 .section-head {
   display: flex; align-items: center; gap: 10px;
@@ -418,13 +418,13 @@ td.note { color: var(--muted); max-width: 30ch; }
 .tag.dhcp { border-color: var(--schiefer); color: var(--schiefer); }
 .tag.reserviert { border-color: var(--braun); color: var(--braun); }
 
-/* ---------- Leerzustand ---------- */
+/* ---------- Empty state ---------- */
 
 .empty { max-width: 48ch; margin: 12vh auto 0; }
 .empty h1 { font-size: 16px; font-weight: 600; margin: 0 0 8px; }
 .empty p { color: var(--muted); margin: 0 0 18px; }
 
-/* ---------- Seitenpanel ---------- */
+/* ---------- Side panel ---------- */
 
 .scrim { position: fixed; inset: 0; background: rgba(28, 28, 26, .55); z-index: 40; }
 
@@ -478,7 +478,7 @@ td.note { color: var(--muted); max-width: 30ch; }
 
 .form-error { color: var(--danger); font-size: 12px; margin-top: 10px; min-height: 1.55em; }
 
-/* ---------- Hinweisleiste ---------- */
+/* ---------- Notice bar ---------- */
 
 .hinweis {
   display: flex;
@@ -555,14 +555,14 @@ td.note { color: var(--muted); max-width: 30ch; }
 .sync-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 14px; }
 .sync-actions .btn { flex: none; }
 
-/* Online-Ring in Textfarbe: dunkel im hellen, hell im dunklen Erscheinungsbild.
-   Ein weisser Ring verschwand im hellen Modus zwischen den hellen Rasterfugen. */
+/* Online ring in text colour: dark in the light, light in the dark appearance.
+   A white ring disappeared between the light grid gaps in light mode. */
 .cell.live { box-shadow: inset 0 0 0 2px var(--text); }
 .cell.ghost {
   background: repeating-linear-gradient(45deg, var(--zelle-frei) 0 2px, var(--kupfer) 2px 4px);
 }
 
-/* ---------- Hinweis ---------- */
+/* ---------- Toast ---------- */
 
 .toast {
   position: fixed;
@@ -576,7 +576,7 @@ td.note { color: var(--muted); max-width: 30ch; }
   z-index: 60;
 }
 
-/* ---------- Übersicht ---------- */
+/* ---------- Overview ---------- */
 
 .rail-nav { flex: none; padding: 0 6px 6px; border-bottom: 1px solid var(--line-soft); margin-bottom: 6px; }
 
@@ -598,7 +598,7 @@ td.note { color: var(--muted); max-width: 30ch; }
 .ov-tile.ov-warn { border-left: 2px solid var(--danger); }
 .ov-tile.ov-ok { border-left: 2px solid var(--gruen); }
 
-/* Balken: Spur in Zellenfarbe, Segmente mit 2px Fuge in Flächenfarbe, runde Enden */
+/* Bars: track in cell colour, segments with a 2px gap in surface colour, rounded ends */
 .bar {
   display: flex;
   gap: 2px;
@@ -681,7 +681,7 @@ td.note { color: var(--muted); max-width: 30ch; }
   .ov-cols { grid-template-columns: 1fr; }
 }
 
-/* ---------- Sicherheitszonen ---------- */
+/* ---------- Security zones ---------- */
 
 .zone-tag {
   margin-left: auto;
@@ -701,7 +701,7 @@ td.note { color: var(--muted); max-width: 30ch; }
 .ov-zone-zahlen { font-size: 11.5px; color: var(--muted); margin: 2px 0 6px; }
 .ov-zone-netze { font-size: 12px; line-height: 1.7; }
 
-/* ---------- Einstellungen: Reiter und Benutzer ---------- */
+/* ---------- Settings: tabs and users ---------- */
 
 .tabs { display: flex; gap: 2px; margin: -4px 0 16px; border-bottom: 1px solid var(--line); }
 .tab {
@@ -730,7 +730,7 @@ td.note { color: var(--muted); max-width: 30ch; }
 .field input:disabled, .field select:disabled, .field textarea:disabled { color: var(--muted); cursor: default; opacity: 1; }
 .swatch:disabled { cursor: default; }
 
-/* ---------- Anmeldung ---------- */
+/* ---------- Sign-in ---------- */
 
 .login-page { display: flex; min-height: 100%; }
 .login {
@@ -739,7 +739,7 @@ td.note { color: var(--muted); max-width: 30ch; }
   margin: auto;
   padding: 40px 0;
 }
-/* Sprachumschalter oben rechts, auf Höhe des Logos */
+/* Language toggle at the top right, level with the logo */
 .login-lang { position: absolute; top: 38px; right: 0; font-weight: 600; letter-spacing: .04em; }
 .login-brand {
   display: flex;
@@ -769,7 +769,7 @@ td.note { color: var(--muted); max-width: 30ch; }
 .field .check input { width: auto; padding: 0; }
 .login-foot { margin-top: 14px; font-size: 11.5px; color: var(--danger); }
 
-/* ---------- Konto ---------- */
+/* ---------- Account ---------- */
 
 .account-user { margin: 0 0 18px; color: var(--muted); }
 .account-user b { color: var(--text); font-weight: 500; }
@@ -783,7 +783,7 @@ td.note { color: var(--muted); max-width: 30ch; }
 .settings-result:empty { display: none; }
 .settings-result.ok { color: var(--gruen); }
 
-/* ---------- Schmale Displays ---------- */
+/* ---------- Narrow screens ---------- */
 
 @media (max-width: 860px) {
   .rail-toggle { display: inline-flex; }
@@ -807,8 +807,8 @@ td.note { color: var(--muted); max-width: 30ch; }
   td.note, th.note { display: none; }
 }
 
-/* Sehr schmale Displays: Die Suche bekommt eine eigene Zeile, sonst bleibt neben
-   Logo und Knöpfen kein Platz mehr für sie. Kopfleiste dann 10+30+8+30+10 = 88px hoch. */
+/* Very narrow screens: the search gets its own row, otherwise there is no room left for
+   it next to the logo and buttons. The top bar is then 10+30+8+30+10 = 88px tall. */
 @media (max-width: 600px) {
   .topbar { flex-wrap: wrap; height: auto; padding: 10px 12px; row-gap: 8px; }
   #search { order: 99; flex: 1 0 100%; max-width: none; }

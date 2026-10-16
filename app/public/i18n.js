@@ -1,20 +1,20 @@
-// Übersetzungen für l3t ipam. Deutsch ist die Ausgangssprache: Jeder deutsche Text ist
-// zugleich sein eigener Schlüssel, EN liefert die englische Fassung dazu.
+// Translations for l3t ipam. German is the source language: every German text is also
+// its own key, EN provides the English version for it.
 //
-//   t(de, vars)       eigener Text, {name} wird aus vars ersetzt
-//   tn(n, eins, mehr) Einzahl/Mehrzahl, {n} steht für die Anzahl
-//   tr(text)          fertige deutsche Meldung (meist vom Server) zurück in die aktuelle Sprache
+//   t(de, vars)       own text, {name} is replaced from vars
+//   tn(n, eins, mehr) singular/plural, {n} stands for the count
+//   tr(text)          finished German message (usually from the server) back into the current language
 //
-// Schlüssel der Form «Kontext|Text» trennen gleichlautende Wörter mit verschiedener
-// Bedeutung (etwa die Rolle «Bearbeiten» und den Knopf «Bearbeiten»); angezeigt wird nur «Text».
+// Keys of the form «Kontext|Text» separate identical words with different meanings
+// (e.g. the role «Bearbeiten» and the button «Bearbeiten»); only «Text» is displayed.
 //
-// Läuft im Browser (globales I18N) und in Node (require), ohne Abhängigkeiten.
+// Runs in the browser (global I18N) and in Node (require), without dependencies.
 
 (function (root) {
   'use strict';
 
   const EN = {
-    /* ---------- Oberfläche: Rahmen und Navigation ---------- */
+    /* ---------- UI: frame and navigation ---------- */
     'Netze anzeigen': 'Show networks',
     'Übersicht': 'Overview',
     'IP, Hostname, MAC, Notiz …': 'IP, hostname, MAC, note …',
@@ -33,7 +33,7 @@
     'Keine Verbindung zum Dienst': 'No connection to the service',
     'Keine Verbindung zum Dienst: {fehler}': 'No connection to the service: {fehler}',
 
-    /* ---------- Erscheinungsbild ---------- */
+    /* ---------- Appearance ---------- */
     'Systemvorgabe': 'System default',
     'Hell': 'Light',
     'Dunkel': 'Dark',
@@ -41,7 +41,7 @@
     'Erscheinungsbild: {name}. Umschalten.': 'Appearance: {name}. Toggle.',
     'Nicht gespeichert: {fehler}': 'Not saved: {fehler}',
 
-    /* ---------- Farben (nur für Screenreader) ---------- */
+    /* ---------- Colours (screen readers only) ---------- */
     'blau': 'blue',
     'kupferton': 'copper',
     'gruen': 'green',
@@ -49,7 +49,7 @@
     'schiefer': 'slate',
     'violett': 'violet',
 
-    /* ---------- Typen ---------- */
+    /* ---------- Types ---------- */
     'statisch': 'static',
     'dhcp': 'DHCP',
     'reserviert': 'reserved',
@@ -61,7 +61,7 @@
     'sporadisch': 'sporadic',
     'meldet sich nur sporadisch': 'connects only sporadically',
 
-    /* ---------- Zonen ---------- */
+    /* ---------- Zones ---------- */
     'Sicherheitszone': 'Security zone',
     'Sicherheitszone aus UniFi': 'Security zone from UniFi',
     'Sicherheitszonen': 'Security zones',
@@ -69,7 +69,7 @@
     'ohne Zone': 'no zone',
     'aus UniFi': 'from UniFi',
 
-    /* ---------- Zeit ---------- */
+    /* ---------- Time ---------- */
     'gerade eben': 'just now',
     'vor {n} Min.': '{n} min ago',
     'vor {n} Std.': '{n} h ago',
@@ -78,7 +78,7 @@
     'zuletzt gesehen {zeit}': 'last seen {zeit}',
     'zuletzt {zeit}': 'last seen {zeit}',
 
-    /* ---------- Mengen ---------- */
+    /* ---------- Quantities ---------- */
     '1 Eintrag': '1 entry',
     '{n} Einträge': '{n} entries',
     '1 Netz': '1 network',
@@ -88,7 +88,7 @@
     '1 Sitzung': '1 session',
     '{n} Sitzungen': '{n} sessions',
 
-    /* ---------- UniFi-Abgleich ---------- */
+    /* ---------- UniFi sync ---------- */
     'UniFi-Abgleich': 'UniFi sync',
     'Controller wird abgefragt …': 'Querying controller …',
     'Erneut versuchen': 'Try again',
@@ -140,7 +140,7 @@
       'Leave as is on purpose. If the reservation changes in UniFi, the notice reappears.',
     'Ausblenden': 'Hide',
 
-    /* ---------- Einstellungen: UniFi ---------- */
+    /* ---------- Settings: UniFi ---------- */
     'Benutzer': 'Users',
     'Wird geladen …': 'Loading …',
     'UniFi-Anbindung': 'UniFi connection',
@@ -171,7 +171,7 @@
       'Remove the UniFi connection? Address and key are deleted, the IPAM inventory stays.',
     'UniFi-Anbindung entfernt': 'UniFi connection removed',
 
-    /* ---------- Einstellungen: Offline-Geräte ---------- */
+    /* ---------- Settings: offline devices ---------- */
     'Offline-Geräte': 'Offline devices',
     'Dokumentierte Hosts, die UniFi länger nicht gesehen hat. Als «sporadisch» markierte Hosts sowie Geräte ohne MAC oder unbekannt bei UniFi bleiben immer stehen.':
       'Documented hosts that UniFi has not seen for a while. Hosts marked «sporadic», devices without a MAC and devices unknown to UniFi are always kept.',
@@ -195,7 +195,7 @@
     '{n} entfernt: {liste}': '{n} removed: {liste}',
     'Nichts zu entfernen': 'Nothing to remove',
 
-    /* ---------- Benutzer und Rollen ---------- */
+    /* ---------- Users and roles ---------- */
     'Rolle|Administrator': 'Administrator',
     'Rolle|Bearbeiten': 'Editor',
     'Rolle|Lesen': 'Viewer',
@@ -234,7 +234,7 @@
     'aus der Compose-Datei': 'from the Compose file',
     'Ansehen': 'View',
 
-    /* ---------- Konto ---------- */
+    /* ---------- Account ---------- */
     'Angemeldet als <b>{user}</b> · {rolle}': 'Signed in as <b>{user}</b> · {rolle}',
     'Dieses Konto wird über IPAM_USER und IPAM_PASS in der Compose-Datei verwaltet. Das Passwort lässt sich nur dort ändern.':
       'This account is managed via IPAM_USER and IPAM_PASS in the Compose file. The password can only be changed there.',
@@ -247,7 +247,7 @@
     'Die beiden neuen Passwörter stimmen nicht überein': 'The two new passwords do not match',
     'Passwort geändert, andere Geräte abgemeldet': 'Password changed, other devices signed out',
 
-    /* ---------- Netzansicht ---------- */
+    /* ---------- Network view ---------- */
     'Noch keine Netze erfasst': 'No networks yet',
     'Leg dein erstes Netz an — VLAN-ID, Name und Subnetz genügen. Hosts und DNS-Namen kommen danach dazu.':
       'Add your first network — VLAN ID, name and subnet are enough. Hosts and DNS names come afterwards.',
@@ -281,7 +281,7 @@
     'Typ': 'Type',
     'Notiz': 'Note',
 
-    /* ---------- Übersicht ---------- */
+    /* ---------- Overview ---------- */
     'Statische Adresse im DHCP-Bereich': 'Static address in the DHCP range',
     'Der DHCP-Server kann diese Adresse an ein anderes Gerät vergeben — dann gibt es einen Konflikt. Als Reservierung erfassen oder ausserhalb des Bereichs legen.':
       'The DHCP server may hand this address to another device — causing a conflict. Record it as a reservation or move it outside the range.',
@@ -337,12 +337,12 @@
     'Zuletzt geändert': 'Recently changed',
     'Noch nichts erfasst.': 'Nothing recorded yet.',
 
-    /* ---------- Suche ---------- */
+    /* ---------- Search ---------- */
     'Treffer für „{suche}“': 'Results for “{suche}”',
     'Zweck': 'Purpose',
     'Keine Hosts gefunden.': 'No hosts found.',
 
-    /* ---------- Formulare ---------- */
+    /* ---------- Forms ---------- */
     'Abbrechen': 'Cancel',
     'VLAN-ID': 'VLAN ID',
     'CIDR-Schreibweise. IPv6 wird gespeichert, aber ohne Raster dargestellt.': 'CIDR notation. IPv6 is saved but shown without an address grid.',
@@ -403,7 +403,7 @@
     'Bestand importiert': 'Inventory imported',
     'Import fehlgeschlagen: {fehler}': 'Import failed: {fehler}',
 
-    /* ---------- Anmeldeseite ---------- */
+    /* ---------- Sign-in page ---------- */
     'Anmelden · l3t ipam': 'Sign in · l3t ipam',
     'Anmelden': 'Sign in',
     'Angemeldet bleiben (30 Tage)': 'Stay signed in (30 days)',
@@ -417,7 +417,7 @@
     'Benutzername und Passwort eingeben': 'Enter username and password',
     'Einrichtungscode fehlt': 'Setup code missing',
 
-    /* ---------- Server: Bestand (server.js) ---------- */
+    /* ---------- Server: inventory (server.js) ---------- */
     'geladen: {vlans} VLANs, {hosts} Hosts': 'loaded: {vlans} VLANs, {hosts} hosts',
     'WARNUNG: ipam.json unlesbar, starte leer:': 'WARNING: ipam.json unreadable, starting empty:',
     'WARNUNG: ipam.json unlesbar, starte leer: {fehler}': 'WARNING: ipam.json unreadable, starting empty: {fehler}',
@@ -502,7 +502,7 @@
     'Zone «{name}» kommt jetzt aus UniFi': 'Zone «{name}» now comes from UniFi',
     'Zone «{name}» nicht mehr in UniFi': 'Zone «{name}» no longer in UniFi',
 
-    // Diagnosewerkzeug unifi-check.js
+    // Diagnostic tool unifi-check.js
     'l3t ipam — UniFi-Diagnose': 'l3t ipam — UniFi diagnostics',
     'Oberfläche (data/unifi.json)': 'web UI (data/unifi.json)',
     'Compose-Datei': 'compose file',
@@ -574,7 +574,7 @@
     'Start abgebrochen:': 'Startup aborted:',
     'Start abgebrochen: {fehler}': 'Startup aborted: {fehler}',
 
-    /* ---------- Server: Anmeldung und Benutzer (auth.js) ---------- */
+    /* ---------- Server: sign-in and users (auth.js) ---------- */
     'Sitzungen nicht gespeichert:': 'Sessions not saved:',
     'Sitzungen nicht gespeichert: {fehler}': 'Sessions not saved: {fehler}',
     'WARNUNG: auth.json unlesbar, Einrichtung wird neu angeboten:': 'WARNING: auth.json unreadable, offering setup again:',
@@ -669,8 +669,8 @@
     'Gateway': 'Gateway',
   };
 
-  // Platzhalter, deren Wert selbst eine deutsche Meldung ist (etwa «Import abgebrochen: {fehler}»).
-  // tr() übersetzt sie mit.
+  // Placeholders whose value is itself a German message (e.g. «Import abgebrochen: {fehler}»).
+  // tr() translates them as well.
   const VERSCHACHTELT = new Set(['fehler', 'grund', 'was']);
   // Placeholders holding a comma-separated list of messages: each entry is translated.
   const LISTEN = new Set(['aenderungen']);
@@ -697,7 +697,7 @@
     ? text.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined && vars[k] !== null ? String(vars[k]) : m))
     : text);
 
-  // Deutscher Anzeigetext eines Schlüssels: «Kontext|Text» → «Text».
+  // German display text of a key: «Kontext|Text» → «Text».
   const deutsch = (key) => {
     const i = key.indexOf('|');
     return i === -1 ? key : key.slice(i + 1);
@@ -715,14 +715,14 @@
     return fill(deutsch(k), vars);
   }
 
-  // Einzahl/Mehrzahl: `eins` für genau 1, sonst `mehr`. {n} ist die Anzahl, sofern vars nichts anderes sagt.
+  // Singular/plural: `eins` for exactly 1, otherwise `mehr`. {n} is the count unless vars says otherwise.
   const tn = (n, eins, mehr, vars) => t(Number(n) === 1 ? eins : mehr, { n, ...(vars || {}) });
 
-  // Schlüssel mit Platzhaltern einmal als Muster vorbereiten. Längere feste Teile zuerst,
-  // damit «Benutzer «{user}» gelöscht von «{admin}»» vor «Benutzer «{user}»» greift.
+  // Prepare keys with placeholders once as patterns. Longer fixed parts first, so that
+  // «Benutzer «{user}» gelöscht von «{admin}»» matches before «Benutzer «{user}»».
   const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  // Platzhalter, die immer Zahlen sind, passen nur auf Ziffern. Sonst schluckt eine
-  // Vorlage, die mit «{anzahl} von …» beginnt, den Anfang einer längeren Meldung.
+  // Placeholders that are always numbers only match digits. Otherwise a template starting
+  // with «{anzahl} von …» would swallow the beginning of a longer message.
   const ZAHLEN = new Set(['n', 'tage', 'status', 'netze', 'geprueft', 'zugeordnet', 'geraete', 'live',
     'gesamt', 'zonen', 'anzahl', 'min', 'port', 'vlans', 'hosts', 'p']);
   const MUSTER = Object.keys(EN)
@@ -738,7 +738,7 @@
     })
     .sort((a, b) => b.fest - a.fest);
 
-  // Übersetzt eine fertige deutsche Meldung. Unbekanntes bleibt, wie es ist.
+  // Translates a finished German message. Anything unknown stays as it is.
   function tr(text) {
     if (lang === 'de' || typeof text !== 'string' || !text) return text;
     if (Object.prototype.hasOwnProperty.call(EN, text)) return EN[text];
@@ -760,7 +760,7 @@
     if (!LANGS.includes(l)) return;
     lang = l;
     if (imBrowser) {
-      try { window.localStorage.setItem(SPEICHER, l); } catch { /* privater Modus: gilt nur für diese Seite */ }
+      try { window.localStorage.setItem(SPEICHER, l); } catch { /* private mode: applies to this page only */ }
       document.documentElement.lang = l;
     }
   }
@@ -768,7 +768,7 @@
   const getLang = () => lang;
   const locale = () => (lang === 'en' ? 'en-GB' : 'de-CH');
 
-  // Feste Texte im HTML: der Attributwert ist der deutsche Ausgangstext.
+  // Fixed texts in the HTML: the attribute value is the German source text.
   const ATTRIBUTE = [
     ['data-i18n', (el, s) => { el.textContent = s; }],
     ['data-i18n-placeholder', (el, s) => { el.setAttribute('placeholder', s); }],
@@ -779,7 +779,7 @@
     const wurzel = rootEl || (imBrowser ? document : null);
     if (!wurzel) return;
     if (imBrowser) document.documentElement.lang = lang;
-    // Auf Deutsch steht der Text schon im HTML.
+    // In German, the text is already in the HTML.
     if (lang === 'de') return;
     for (const [attr, setzen] of ATTRIBUTE) {
       wurzel.querySelectorAll(`[${attr}]`).forEach((el) => setzen(el, t(el.getAttribute(attr))));

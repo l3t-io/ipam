@@ -1,4 +1,4 @@
-# Alles mit LF ablegen — der Code läuft im Linux-Container auf der Synology.
+# Store everything with LF — the code runs in a Linux container on the Synology.
 * text=auto eol=lf
 
 *.woff2 binary

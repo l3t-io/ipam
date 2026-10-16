@@ -1,19 +1,19 @@
 'use strict';
 
-// Übersetzung: t() für eigene Texte, tn() für Einzahl/Mehrzahl, tr() für fertige Meldungen vom Server.
+// Translation: t() for our own texts, tn() for singular/plural, tr() for finished server messages.
 const { t, tn, tr } = I18N;
 
-/* ---------- Zustand ---------- */
+/* ---------- State ---------- */
 
 let DB = { vlans: [], hosts: [], domain: 'home.arpa', version: '', settings: { theme: 'auto' } };
 let selectedId = null;
 let query = '';
 let lastFocus = null;
-let LIVE = new Map();   // IP -> { mac, name }, aus UniFi
-let ZULETZT = {};       // MAC -> zuletzt gesehen (ms), aus UniFi
+let LIVE = new Map();   // IP -> { mac, name }, from UniFi
+let ZULETZT = {};       // MAC -> last seen (ms), from UniFi
 let AUTH = { mode: 'off' };
 
-// Was die eigene Rolle darf. Der Server prüft dasselbe — das hier blendet nur aus.
+// What the current role may do. The server checks the same — this only hides controls.
 const rolle = () => AUTH.role || (AUTH.mode === 'off' ? 'admin' : 'leser');
 const darfSchreiben = () => ['admin', 'bearbeiter'].includes(rolle());
 const istAdmin = () => rolle() === 'admin';
@@ -26,7 +26,7 @@ function applyRolle() {
 }
 
 const COLORS = ['blau', 'kupferton', 'gruen', 'braun', 'schiefer', 'violett'];
-// Farbnamen nur für Screenreader; gespeichert wird weiterhin der deutsche Schlüssel.
+// Colour names only for screen readers; the German key is still what gets stored.
 const FARBNAME = { blau: t('blau'), kupferton: t('kupferton'), gruen: t('gruen'), braun: t('braun'), schiefer: t('schiefer'), violett: t('violett') };
 const farbName = (c) => FARBNAME[c] || c;
 const THEMES = ['auto', 'light', 'dark'];
@@ -37,7 +37,7 @@ const THEME_ICON = {
   dark: '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.4 9.9A5.8 5.8 0 016.1 2.6 5.9 5.9 0 108 13.9c2.4 0 4.5-1.6 5.4-4z" fill="currentColor"/></svg>',
 };
 const KINDS = ['statisch', 'dhcp', 'reserviert'];
-// Der Typ bleibt im Bestand deutsch; übersetzt wird nur die Anzeige.
+// The type stays German in the data; only the display is translated.
 const KIND_LABEL = { statisch: t('statisch'), dhcp: t('dhcp'), reserviert: t('reserviert') };
 const kindLabel = (k) => KIND_LABEL[k] || k;
 // Default zones of UniFi's zone-based firewall, offered as suggestions next to existing zones.
@@ -92,13 +92,13 @@ async function call(method, path, body) {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
-  // Sitzung abgelaufen oder abgemeldet: zurück zur Anmeldung.
+  // Session expired or logged out: back to the login page.
   if (res.status === 401 && !path.startsWith('/api/auth/')) {
     window.location.replace('/login');
     throw new Error(t('Anmeldung erforderlich'));
   }
   const data = await res.json().catch(() => ({}));
-  // Fehlermeldungen des Servers kommen deutsch und werden hier übersetzt.
+  // Server error messages arrive in German and are translated here.
   if (!res.ok) throw new Error(data.error ? tr(data.error) : t('Fehler {status}', { status: res.status }));
   return data;
 }
@@ -107,7 +107,7 @@ async function reload() {
   DB = await call('GET', '/api/state');
   applyTheme();
   $('btnUnifi').hidden = !DB.unifi;
-  // Ohne gewähltes Netz zeigt die Hauptfläche die Übersicht.
+  // Without a selected network, the main area shows the overview.
   if (selectedId && !DB.vlans.some((v) => v.id === selectedId)) selectedId = null;
   render();
 }
@@ -129,7 +129,7 @@ async function loadLive() {
     const r = await call('GET', '/api/unifi/live');
     LIVE = new Map((r.live || []).map((l) => [l.ip, l]));
     ZULETZT = r.zuletzt || {};
-    // Der Server hat dabei Zonen aus UniFi übernommen: Bestand neu laden.
+    // The server imported zones from UniFi along the way: reload the data.
     if (r.zonenGeaendert) await reload();
   } catch {
     LIVE = new Map();
@@ -144,18 +144,18 @@ function syncItem(key, titel, detail) {
   </label>`;
 }
 
-// Feldnamen und Typ-Werte kommen vom Server deutsch; die Werte selbst bleiben Daten.
+// Field names and type values come from the server in German; the values themselves stay data.
 const feldWert = (a, w) => (a.feld === 'kind' ? kindLabel(w) : w);
 const feldListe = (abw) => abw.map((a) =>
   `${esc(tr(a.label))}: <s>${esc(feldWert(a, a.ipam)) || '—'}</s> → ${esc(feldWert(a, a.unifi))}`).join(' · ');
 
-// Kurzer Hinweis bei neuen Hosts, wenn UniFi die Adresse noch für ein anderes Gerät reserviert.
+// Short notice for new hosts when UniFi still reserves the address for another device.
 const veraltetHinweis = (v) => v
   ? `<span class="sync-warn">${esc(t('Achtung: In UniFi ist die Adresse noch fest für {name} ({mac}) reserviert — siehe «In UniFi prüfen».',
     { name: v.name || t('ein anderes Gerät'), mac: v.mac }))}</span>`
   : '';
 
-// Ausführliche Erklärung einer veralteten Reservierung, mit dem, was in UniFi zu tun ist.
+// Detailed explanation of a stale reservation, including what to do in UniFi.
 function pruefenEintrag(p) {
   const v = p.veraltet;
   const alt = v.name || t('ein Gerät ohne Namen');
@@ -297,7 +297,7 @@ async function unifiDrawer(refresh = false) {
   }
 }
 
-/* ---------- Einstellungen ---------- */
+/* ---------- Settings ---------- */
 
 async function logout() {
   try { await call('POST', '/api/auth/logout'); } catch {}
@@ -485,9 +485,9 @@ async function settingsDrawer(tab = 'unifi') {
   }
 }
 
-/* ---------- Benutzerverwaltung ---------- */
+/* ---------- User management ---------- */
 
-// «Rolle|…» trennt den Rollennamen vom gleichlautenden Knopf «Bearbeiten».
+// «Rolle|…» separates the role name from the identically worded «Bearbeiten» (edit) button.
 const ROLLEN = [
   { id: 'admin', label: t('Rolle|Administrator'), text: t('darf alles, auch Benutzer, UniFi-Einstellungen und Import') },
   { id: 'bearbeiter', label: t('Rolle|Bearbeiten'), text: t('pflegt Netze, Hosts und übernimmt den UniFi-Abgleich') },
@@ -621,7 +621,7 @@ async function usersTab(ansicht = null) {
   box.querySelectorAll('[data-user]').forEach((el) => { el.onclick = () => usersTab(el.dataset.user); });
 }
 
-/* ---------- Konto ---------- */
+/* ---------- Account ---------- */
 
 function accountDrawer() {
   const env = AUTH.managedByEnv;
@@ -663,7 +663,7 @@ function accountDrawer() {
   };
 }
 
-/* ---------- Erscheinungsbild ---------- */
+/* ---------- Appearance ---------- */
 
 function applyTheme() {
   const thema = THEMES.includes(DB.settings?.theme) ? DB.settings.theme : 'auto';
@@ -687,7 +687,7 @@ async function cycleTheme() {
   }
 }
 
-/* ---------- IPv4-Mathematik ---------- */
+/* ---------- IPv4 math ---------- */
 
 function ipToInt(ip) {
   const p = String(ip ?? '').trim().split('.');
@@ -749,7 +749,7 @@ function nextFreeIp(vlan) {
   return '';
 }
 
-// Je Netz und Adresse darf es nur einen Eintrag geben.
+// Only one entry is allowed per network and address.
 function doppelte() {
   const zaehler = new Map();
   for (const h of DB.hosts) {
@@ -763,7 +763,7 @@ const sortedVlans = () => DB.vlans.slice().sort((a, b) => (a.vid || 0) - (b.vid 
 const hostsOf = (id) => DB.hosts.filter((h) => h.vlanId === id)
   .sort((a, b) => (ipToInt(a.ip) ?? 0) - (ipToInt(b.ip) ?? 0));
 
-/* ---------- Seitenleiste ---------- */
+/* ---------- Sidebar ---------- */
 
 function renderRail() {
   $('vlanList').innerHTML = sortedVlans().map((v) => {
@@ -793,7 +793,7 @@ function renderRail() {
   });
 }
 
-/* ---------- Hauptbereich ---------- */
+/* ---------- Main area ---------- */
 
 function render() {
   renderRail();
@@ -993,10 +993,10 @@ function wireRows() {
   });
 }
 
-/* ---------- Übersicht ---------- */
+/* ---------- Overview ---------- */
 
-// Typen bekommen keine eigenen Farben: Farbe heisst in der App «Netz» bzw. «Zone».
-// Der Typ steht als Zahl in der Übersicht und als Form im Raster (reserviert = Ecke).
+// Types get no colours of their own: in this app, colour means "network" or "zone".
+// The type shows as a number in the overview and as a shape in the grid (reserved = corner).
 const TYPEN = [
   { kind: 'statisch', label: t('statisch'), text: t('am Gerät eingestellt') },
   { kind: 'reserviert', label: t('reserviert'), text: t('vom DHCP-Server fest vergeben') },
@@ -1017,7 +1017,7 @@ function vorZeit(iso) {
   return new Date(iso).toLocaleDateString(I18N.locale());
 }
 
-// Kennzahlen eines Netzes. Grosse Netze werden nicht Adresse für Adresse durchlaufen.
+// Key figures of a network. Large networks are not walked address by address.
 function netzStatistik(v) {
   const r = parseCidr(v.cidr);
   const hosts = DB.hosts.filter((h) => h.vlanId === v.id);
@@ -1048,7 +1048,7 @@ function netzStatistik(v) {
   };
 }
 
-// Prüfungen über den ganzen Bestand. Jede liefert betroffene Einträge zum Anklicken.
+// Checks across all data. Each one returns the affected entries as clickable items.
 function auffaelligkeiten(stats) {
   const liste = [];
   const aus = new Set((DB.ignoriert || []).map((i) => i.key));
@@ -1169,7 +1169,7 @@ function auffaelligkeiten(stats) {
       anzahl: fremd,
     });
   }
-  // Ausgeblendetes herausnehmen und zählen
+  // Remove dismissed items and count them
   let ausgeblendet = 0;
   for (const c of liste) {
     const vorher = c.eintraege.length;
@@ -1180,7 +1180,7 @@ function auffaelligkeiten(stats) {
   return liste;
 }
 
-// Belegung eines Netzes in seiner Farbe, der Rest als freies Segment.
+// A network's usage in its colour, the rest as a free segment.
 function belegBalken(s) {
   const p = s.nutzbar ? Math.min(100, (s.hosts.length / s.nutzbar) * 100) : 0;
   const titel = TYPEN.map((typ) => `${typ.label} ${s.typ[typ.kind]}`).join(' · ');
@@ -1188,7 +1188,7 @@ function belegBalken(s) {
     s.hosts.length ? `<span class="seg seg-netz" style="width:${p}%"></span>` : ''}${p < 100 ? '<span class="seg seg-frei"></span>' : ''}</span>`;
 }
 
-// Aufteilung nach Typ als Zahlen.
+// Breakdown by type as numbers.
 function typZahlen(typ, gesamt) {
   return `<div class="ov-typen">${TYPEN.map((ty) => `<div class="ov-typ">
     <div class="ov-typ-num">${zahl(typ[ty.kind])} <span class="dim">${prozent(typ[ty.kind], gesamt)} %</span></div>
@@ -1196,7 +1196,7 @@ function typZahlen(typ, gesamt) {
     <div class="ov-typ-text">${esc(ty.text)}</div></div>`).join('')}</div>`;
 }
 
-// Netze und Hosts je Sicherheitszone. Erscheint erst, wenn Zonen gepflegt sind.
+// Networks and hosts per security zone. Only appears once zones have been set up.
 function zonenUebersicht(stats) {
   if (!stats.some((s) => s.v.zone) && !(DB.zones || []).length) return '';
   const zonen = new Map((DB.zones || []).map((z) => [z.name, { netze: [], hosts: 0 }]));
@@ -1443,7 +1443,7 @@ function zonenDrawer(ansicht = null) {
   }
 }
 
-/* ---------- Suche ---------- */
+/* ---------- Search ---------- */
 
 function renderSearch(main) {
   const q = query.toLowerCase();
@@ -1481,7 +1481,7 @@ function renderSearch(main) {
   });
 }
 
-/* ---------- Seitenpanel ---------- */
+/* ---------- Side panel ---------- */
 
 function openDrawer(title, html) {
   if ($('drawer').hidden) lastFocus = document.activeElement;
@@ -1519,8 +1519,8 @@ function actions(isNew, delLabel) {
     </div>`;
 }
 
-// Formular schreibgeschützt anzeigen.
-// Platzhalter und Eingabehinweise würden hier wie echte Werte wirken und fallen weg.
+// Show a form read-only.
+// Placeholders and input hints would look like real values here, so they are dropped.
 function nurAnsehen() {
   const body = $('drawerBody');
   body.querySelectorAll('input, select, textarea, .swatch').forEach((el) => {
@@ -1531,7 +1531,7 @@ function nurAnsehen() {
   $('cancel').onclick = closeDrawer;
 }
 
-/* ---------- Netzformular ---------- */
+/* ---------- Network form ---------- */
 
 function zonenFarbHinweis(name) {
   if (!String(name || '').trim()) return '';
@@ -1657,9 +1657,9 @@ function vlanForm(vlan) {
   }
 }
 
-/* ---------- Hostformular ---------- */
+/* ---------- Host form ---------- */
 
-// «zuletzt gesehen» laut UniFi, sofern die MAC dort bekannt ist.
+// "Last seen" according to UniFi, if the MAC is known there.
 function zuletztText(h) {
   if (!DB.unifi || !h.mac) return '';
   const mac = h.mac.toLowerCase().replace(/-/g, ':');
@@ -1703,7 +1703,7 @@ function hostForm(host) {
   if (!darfSchreiben()) return nurAnsehen();
   const nameEl = $('h-name');
   const fqdnEl = $('h-fqdn');
-  // Ein bereits gesetzter DNS-Name gilt als bewusst gewählt und wird nicht überschrieben.
+  // A DNS name that is already set counts as deliberately chosen and is not overwritten.
   if (h.fqdn) fqdnEl.dataset.touched = '1';
   nameEl.addEventListener('input', () => {
     if (!fqdnEl.dataset.touched) fqdnEl.value = nameEl.value ? `${nameEl.value}.${DB.domain}` : '';
@@ -1759,7 +1759,7 @@ function hostForm(host) {
   }
 }
 
-/* ---------- Verdrahtung ---------- */
+/* ---------- Wiring ---------- */
 
 function closeRail() {
   $('rail').classList.remove('open');
@@ -1824,17 +1824,17 @@ document.addEventListener('keydown', (e) => {
     if (typing && el.id === 'search') { el.value = ''; query = ''; render(); el.blur(); }
     return;
   }
-  // Der Schrägstrich darf beim Tippen von CIDR-Notation nicht ins Suchfeld springen.
+  // Typing a slash in CIDR notation must not jump to the search field.
   if (e.key === '/' && !typing && !drawerOpen()) {
     e.preventDefault();
     $('search').focus();
   }
 });
 
-/* ---------- Sprache ---------- */
+/* ---------- Language ---------- */
 
-// Feste Texte im HTML übersetzen. Der Knopf zeigt die jeweils andere Sprache;
-// nach dem Umschalten wird neu geladen, damit kein Text in der alten Sprache stehen bleibt.
+// Translate the static texts in the HTML. The button shows the other language;
+// switching reloads the page so no text in the old language is left behind.
 I18N.applyStatic(document);
 $('btnLang').textContent = I18N.getLang() === 'de' ? 'EN' : 'DE';
 $('btnLang').onclick = () => {

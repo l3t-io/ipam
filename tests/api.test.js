@@ -1,6 +1,6 @@
 'use strict';
 
-// Grundfunktionen der API, mit abgeschalteter Anmeldung.
+// Basic API functions, with sign-in disabled.
 
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -12,26 +12,26 @@ describe('API', () => {
   before(async () => { srv = await startServer({ env: { IPAM_AUTH: 'off' } }); });
   after(() => srv.stop());
 
-  test('Status liefert Version und leeren Bestand', async () => {
+  test('state returns version and empty inventory', async () => {
     const r = await req(srv.base, 'GET', '/api/state');
     assert.equal(r.status, 200);
     assert.match(r.json.version, /^\d+\.\d+\.\d+$/);
     assert.deepEqual(r.json.vlans, []);
   });
 
-  test('Netz anlegen, mit Sicherheitszone', async () => {
+  test('create network, with security zone', async () => {
     const r = await req(srv.base, 'POST', '/api/vlans', { body: { vid: 20, name: 'Server', cidr: '10.13.20.0/24', zone: ' Internal ' } });
     assert.equal(r.status, 201);
     assert.equal(r.json.zone, 'Internal');
     vlan = r.json;
   });
 
-  test('Zone bleibt beim Ändern anderer Felder erhalten', async () => {
+  test('zone is kept when other fields change', async () => {
     const r = await req(srv.base, 'PATCH', `/api/vlans/${vlan.id}`, { body: { name: 'Server neu' } });
     assert.equal(r.json.zone, 'Internal');
   });
 
-  test('Host anlegen und doppelte Adresse ablehnen', async () => {
+  test('create host and reject duplicate address', async () => {
     const a = await req(srv.base, 'POST', '/api/hosts', { body: { vlanId: vlan.id, ip: '10.13.20.10', hostname: 'nas' } });
     assert.equal(a.status, 201);
     const b = await req(srv.base, 'POST', '/api/hosts', { body: { vlanId: vlan.id, ip: '10.13.20.10', hostname: 'zweit' } });
@@ -39,13 +39,13 @@ describe('API', () => {
     assert.match(b.json.error, /bereits vergeben/);
   });
 
-  test('Export enthält den Bestand', async () => {
+  test('export contains the inventory', async () => {
     const r = await req(srv.base, 'GET', '/api/export');
     assert.equal(r.status, 200);
     assert.equal(r.json.hosts.length, 1);
   });
 
-  test('Pfade ausserhalb von public/ werden nicht ausgeliefert', async () => {
+  test('paths outside public/ are not served', async () => {
     for (const p of ['/../server.js', '/%2e%2e/server.js', '/..%2fauth.js']) {
       const r = await req(srv.base, 'GET', p);
       assert.notEqual(r.status, 200, p);
@@ -54,8 +54,8 @@ describe('API', () => {
   });
 });
 
-describe('Auffälligkeiten ausblenden', () => {
-  test('ausblenden, Sorten getrennt wieder einblenden, Unsinn ablehnen', async () => {
+describe('Hiding findings', () => {
+  test('hide, show again per kind, reject nonsense', async () => {
     const srv = await startServer({ env: { IPAM_AUTH: 'off' } });
     try {
       const ok = (key) => req(srv.base, 'POST', '/api/ignore', { body: { key, name: 'Sonos' } });
@@ -69,7 +69,7 @@ describe('Auffälligkeiten ausblenden', () => {
       const r = await req(srv.base, 'DELETE', '/api/ignore?art=auf');
       assert.equal(r.json.eingeblendet, 2);
       assert.deepEqual((await req(srv.base, 'GET', '/api/state')).json.ignoriert.map((i) => i.key), ['chk:10.0.0.1|aa:bb:cc:dd:ee:ff']);
-      // Der alte Weg über /api/unifi/ignore funktioniert weiter
+      // The old route via /api/unifi/ignore still works
       assert.equal((await req(srv.base, 'POST', '/api/unifi/ignore', { body: { key: 'auf:name:1' } })).status, 200);
     } finally {
       await srv.stop();

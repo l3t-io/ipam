@@ -1,8 +1,8 @@
-# L3T IPAM — Container-Image
-# Gebaut für linux/amd64 und linux/arm64 (Raspberry Pi), siehe .github/workflows/docker.yml.
+# L3T IPAM — container image
+# Built for linux/amd64 and linux/arm64 (Raspberry Pi), see .github/workflows/docker.yml.
 FROM node:22-alpine
 
-# su-exec: Rechte nach dem Vorbereiten des Datenordners abgeben (wie gosu, aber winzig)
+# su-exec: drop privileges after preparing the data folder (like gosu, but tiny)
 RUN apk add --no-cache su-exec
 
 WORKDIR /app

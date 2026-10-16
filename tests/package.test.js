@@ -1,6 +1,6 @@
 'use strict';
 
-// Prüft das fertige Synology-Paket, bevor es jemand hochlädt.
+// Checks the finished Synology package before anyone uploads it.
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -13,7 +13,7 @@ const { crc32 } = require('../scripts/package');
 
 const ROOT = path.join(__dirname, '..');
 
-// Minimaler Leser für das Zentralverzeichnis.
+// Minimal reader for the central directory.
 function lesen(buf) {
   const ende = buf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
   const anzahl = buf.readUInt16LE(ende + 10);
@@ -39,48 +39,48 @@ function lesen(buf) {
   return dateien;
 }
 
-test('Synology-Paket ist vollständig und sauber', () => {
+test('Synology package is complete and clean', () => {
   const ziel = tempDir();
   execFileSync(process.execPath, [path.join(ROOT, 'scripts', 'package.js'), ziel], { stdio: 'pipe' });
   const version = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
   const datei = path.join(ziel, `l3t-ipam-${version}-synology.zip`);
-  assert.ok(fs.existsSync(datei), 'ZIP fehlt');
+  assert.ok(fs.existsSync(datei), 'ZIP missing');
 
   const zip = lesen(fs.readFileSync(datei));
   const namen = [...zip.keys()];
 
   for (const n of namen) {
-    assert.ok(n.startsWith('l3t-ipam/'), `alles unter l3t-ipam/: ${n}`);
-    assert.ok(!n.includes('\\'), `nur Schrägstriche im Pfad: ${n}`);
+    assert.ok(n.startsWith('l3t-ipam/'), `everything under l3t-ipam/: ${n}`);
+    assert.ok(!n.includes('\\'), `only forward slashes in the path: ${n}`);
   }
   for (const pflicht of [
     'l3t-ipam/app/server.js', 'l3t-ipam/app/auth.js', 'l3t-ipam/app/unifi.js',
     'l3t-ipam/app/public/index.html', 'l3t-ipam/app/public/login.html', 'l3t-ipam/app/public/login.js', 'l3t-ipam/app/public/i18n.js',
     'l3t-ipam/app/public/fonts/plex-mono-400.woff2', 'l3t-ipam/docker-compose.yml',
     'l3t-ipam/SYNOLOGY.md', 'l3t-ipam/data/.keep', 'l3t-ipam/LICENSE',
-  ]) assert.ok(zip.has(pflicht), `fehlt: ${pflicht}`);
+  ]) assert.ok(zip.has(pflicht), `missing: ${pflicht}`);
 
-  // Keine Daten, keine Tests, keine Repo-Interna.
+  // No data, no tests, no repo internals.
   for (const n of namen) {
-    assert.ok(!/data\/.+\.json$/.test(n), `Datenrest im Paket: ${n}`);
-    assert.ok(!/\/(tests|scripts|\.git|\.github)\//.test(n), `gehört nicht ins Paket: ${n}`);
+    assert.ok(!/data\/.+\.json$/.test(n), `leftover data in the package: ${n}`);
+    assert.ok(!/\/(tests|scripts|\.git|\.github)\//.test(n), `does not belong in the package: ${n}`);
   }
 
-  // Inhalte entsprechen 1:1 dem Arbeitsstand.
+  // Contents match the working tree 1:1.
   for (const [n, { crc, inhalt }] of zip) {
     if (n.endsWith('/')) continue;
     const rel = n.slice('l3t-ipam/'.length);
     const quelle = fs.readFileSync(path.join(ROOT, rel === 'docker-compose.yml' ? 'deploy/synology-mount/docker-compose.yml' : rel));
-    assert.ok(inhalt.equals(quelle), `Inhalt weicht ab: ${n}`);
-    assert.equal(crc, crc32(quelle), `Prüfsumme falsch: ${n}`);
+    assert.ok(inhalt.equals(quelle), `content differs: ${n}`);
+    assert.equal(crc, crc32(quelle), `wrong checksum: ${n}`);
   }
 
   const compose = zip.get('l3t-ipam/docker-compose.yml').inhalt.toString('utf8');
-  assert.doesNotMatch(compose, /^\s*build\s*:/m, 'Synology-Compose darf kein Image bauen');
+  assert.doesNotMatch(compose, /^\s*build\s*:/m, 'Synology Compose must not build an image');
   assert.match(compose, /\/healthz/);
 });
 
-test('Version in package.json und server.js stimmt überein', () => {
+test('version in package.json and server.js match', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
   const src = fs.readFileSync(path.join(ROOT, 'app', 'server.js'), 'utf8');
   assert.equal(src.match(/const APP_VERSION = '([^']+)'/)[1], pkg);

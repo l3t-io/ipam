@@ -1,6 +1,6 @@
-# Synology Container Manager — ohne Image-Build.
-# Der Container startet node:22-alpine und führt die Anwendung aus dem
-# eingehängten Ordner aus. Es wird kein Dockerfile benötigt.
+# Synology Container Manager — without an image build.
+# The container starts node:22-alpine and runs the app from the
+# mounted folder. No Dockerfile is needed.
 services:
   l3t-ipam:
     image: node:22-alpine
@@ -15,18 +15,18 @@ services:
       - /volume1/docker/l3t-ipam/data:/data
     environment:
       IPAM_DATA: /data
-      IPAM_DOMAIN: home.arpa   # eigene Domain eintragen, etwa l3t.io
-      IPAM_LANG: de            # Sprache des Protokolls (de oder en)
+      IPAM_DOMAIN: home.arpa   # enter your own domain, e.g. l3t.io
+      IPAM_LANG: de            # language of the log (de or en)
       TZ: Europe/Zurich
-      # Anmeldung: Beim ersten Start steht im Protokoll ein Einrichtungscode.
-      # Damit legst du im Browser dein Konto an. Hier ist nichts einzutragen.
+      # Login: on first start, the log shows a setup code.
+      # Use it to create your account in the browser. Nothing to enter here.
       #
-      # Läuft der Zugriff über einen Cloudflare-Tunnel oder den Reverse Proxy der
-      # Synology, diese Zeile aktiv lassen: Dann zählt die Sperre nach Fehlversuchen
-      # pro echter Absenderadresse, und das Cookie wird bei HTTPS als «Secure» markiert.
+      # If access goes through a Cloudflare Tunnel or the Synology reverse proxy,
+      # keep this line enabled: lockouts after failed attempts then count per real
+      # client address, and the cookie is marked «Secure» on HTTPS.
       IPAM_TRUST_PROXY: "1"
-      # Die UniFi-Anbindung wird in der Oberfläche eingerichtet (Zahnrad oben rechts)
-      # und liegt in data/unifi.json. Hier ist dafür nichts mehr einzutragen.
+      # The UniFi connection is set up in the UI (gear icon, top right)
+      # and stored in data/unifi.json. Nothing to enter here for it any more.
     security_opt:
       - no-new-privileges:true
     healthcheck:

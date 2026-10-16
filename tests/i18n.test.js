@@ -1,7 +1,7 @@
 'use strict';
 
-// Übersetzung: Jeder Text der Oberfläche hat eine englische Fassung, Platzhalter passen,
-// und Meldungen des Servers werden zuverlässig zurückübersetzt.
+// Translation: every UI text has an English version, placeholders match,
+// and server messages are reliably translated back.
 
 const { test, after, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -17,7 +17,7 @@ const ohneEscape = (s) => s.replace(/\\(.)/g, '$1');
 
 after(() => I18N.setLang('de'));
 
-// Alle Schlüssel aus t('…'), t(`…`), tn(n, '…', '…') und data-i18n*-Attributen.
+// All keys from t('…'), t(`…`), tn(n, '…', '…') and data-i18n* attributes.
 function schluessel() {
   const keys = new Map();
   const merken = (k, wo) => { if (!keys.has(k)) keys.set(k, wo); };
@@ -36,25 +36,25 @@ function schluessel() {
   return keys;
 }
 
-test('jeder Text aus app.js, login.js und den HTML-Seiten hat eine englische Fassung', () => {
+test('every text from app.js, login.js and the HTML pages has an English version', () => {
   const keys = schluessel();
-  assert.ok(keys.size > 250, `nur ${keys.size} Schlüssel gefunden — Erkennung kaputt?`);
+  assert.ok(keys.size > 250, `only ${keys.size} keys found — detection broken?`);
   const fehlt = [...keys].filter(([k]) => !Object.prototype.hasOwnProperty.call(EN, k)).map(([k, f]) => `${f}: ${k}`);
   assert.deepEqual(fehlt, []);
 });
 
-test('jede englische Fassung hat genau die Platzhalter ihres Schlüssels', () => {
+test('every English version has exactly the placeholders of its key', () => {
   const falsch = Object.entries(EN)
     .filter(([de, en]) => platzhalter(de).join() !== platzhalter(en).join())
     .map(([de, en]) => `${de} → ${en}`);
   assert.deepEqual(falsch, []);
 });
 
-test('keine leeren Übersetzungen', () => {
+test('no empty translations', () => {
   assert.deepEqual(Object.entries(EN).filter(([, en]) => typeof en !== 'string' || !en.trim()).map(([de]) => de), []);
 });
 
-test('tr() übersetzt fertige Meldungen des Servers', () => {
+test('tr() translates finished server messages', () => {
   I18N.setLang('en');
   assert.equal(I18N.tr('10.13.20.10 ist in diesem Netz bereits vergeben'), '10.13.20.10 is already taken in this network');
   assert.equal(I18N.tr('Zu viele Fehlversuche. Erneut möglich in 15 Min.'), 'Too many failed attempts. Try again in 15 min.');
@@ -62,12 +62,12 @@ test('tr() übersetzt fertige Meldungen des Servers', () => {
     '6 zones read, 5 of 6 networks assigned — without zone: Gast');
   assert.equal(I18N.tr('6 Zonen gelesen, 6 von 6 Netzen zugeordnet'), '6 zones read, 6 of 6 networks assigned');
   assert.equal(I18N.tr('Benutzername oder Passwort falsch'), 'Wrong username or password');
-  // Verschachtelte Meldungen werden mitübersetzt.
+  // Nested messages are translated as well.
   assert.equal(I18N.tr('Import abgebrochen: Name fehlt'), 'Import aborted: Name missing');
   assert.equal(I18N.tr('Netze nicht lesbar: Netzwerkfehler: Zeitüberschreitung'), 'Networks not readable: Network error: Timeout');
-  // Längere Muster gehen vor kürzeren.
+  // Longer patterns take precedence over shorter ones.
   assert.equal(I18N.tr('Benutzer «anna» gelöscht von «admin»'), 'User «anna» deleted by «admin»');
-  // Unbekanntes bleibt unverändert.
+  // Unknown text stays unchanged.
   assert.equal(I18N.tr('ECONNREFUSED: connect ECONNREFUSED 10.1.1.1:443'), 'ECONNREFUSED: connect ECONNREFUSED 10.1.1.1:443');
   assert.equal(I18N.tr('Etwas völlig anderes'), 'Etwas völlig anderes');
   assert.equal(I18N.tr(''), '');
@@ -76,7 +76,7 @@ test('tr() übersetzt fertige Meldungen des Servers', () => {
   assert.equal(I18N.tr('Benutzername oder Passwort falsch'), 'Benutzername oder Passwort falsch');
 });
 
-test('tr() findet zu jedem Muster zurück — kein Schlüssel verdeckt einen anderen', () => {
+test('tr() finds its way back for every pattern — no key shadows another', () => {
   I18N.setLang('en');
   const falsch = [];
   for (const [de, en] of Object.entries(EN)) {
@@ -92,7 +92,7 @@ test('tr() findet zu jedem Muster zurück — kein Schlüssel verdeckt einen and
   assert.deepEqual(falsch, []);
 });
 
-test('t() und tn() setzen Werte ein, Deutsch bleibt Ausgangstext', () => {
+test('t() and tn() insert values, German stays the source text', () => {
   I18N.setLang('de');
   assert.equal(I18N.t('Passwort muss mindestens {n} Zeichen lang sein', { n: 12 }), 'Passwort muss mindestens 12 Zeichen lang sein');
   assert.equal(I18N.t('Rolle|Bearbeiten'), 'Bearbeiten');
@@ -108,17 +108,17 @@ test('t() und tn() setzen Werte ein, Deutsch bleibt Ausgangstext', () => {
   assert.equal(I18N.tn(1, '1 Eintrag', '{n} Einträge'), '1 entry');
   assert.equal(I18N.tn(2, '1 Eintrag', '{n} Einträge', { n: '2' }), '2 entries');
   assert.equal(I18N.locale(), 'en-GB');
-  // Fehlende Übersetzung: deutscher Text, Platzhalter trotzdem ersetzt.
+  // Missing translation: German text, placeholders still replaced.
   assert.equal(I18N.t('Gibt es nicht {x}', { x: 1 }), 'Gibt es nicht 1');
-  // Unbekannte Sprache wird ignoriert.
+  // Unknown language is ignored.
   I18N.setLang('fr');
   assert.equal(I18N.getLang(), 'en');
   I18N.setLang('de');
 });
 
-describe('Protokoll auf Englisch', () => {
-  test('mit IPAM_LANG=en kommen Startmeldung und Einrichtungscode englisch', async () => {
-    // Die Testhilfe wartet auf «laeuft auf» — hier eigens auf die englische Ausgabe warten.
+describe('Log in English', () => {
+  test('with IPAM_LANG=en, startup message and setup code come in English', async () => {
+    // The test helper waits for «laeuft auf» — here wait specifically for the English output.
     const { spawn } = require('node:child_process');
     const path = require('node:path');
     const os = require('node:os');
@@ -134,6 +134,6 @@ describe('Protokoll auf Englisch', () => {
     });
     child.kill();
     assert.doesNotMatch(logs, /laeuft auf|Einrichtungscode|Noch kein Konto/, logs);
-    assert.match(logs, /[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}/, 'Code steht im Protokoll');
+    assert.match(logs, /[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}/, 'code is in the log');
   });
 });

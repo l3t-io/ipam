@@ -1,7 +1,7 @@
 'use strict';
 
 // l3t-ipam - minimal IPAM
-// Node >= 18, keine externen Abhaengigkeiten.
+// Node >= 18, no external dependencies.
 
 const APP_VERSION = '2.1.0';
 
@@ -34,16 +34,16 @@ const MIME = {
 
 const DEFAULT_SETTINGS = { theme: 'auto', offline: { ...unifi.OFFLINE_VORGABE } };
 const COLORS = ['blau', 'kupferton', 'gruen', 'braun', 'schiefer', 'violett'];
-// Die Farbe landet als CSS-Variable im Stil-Attribut — nur bekannte Namen zulassen.
+// The colour ends up as a CSS variable in the style attribute — allow known names only.
 const farbe = (c) => (COLORS.includes(c) ? c : c === 'orange' ? 'kupferton' : 'blau');
 const EMPTY = { version: 1, settings: { ...DEFAULT_SETTINGS }, zones: [], vlans: [], hosts: [], ignoriert: [] };
 
 let state = null;
 let writeChain = Promise.resolve();
-let letzteFrischeAbfrage = 0; // «Neu abfragen» höchstens alle fünf Sekunden
+let letzteFrischeAbfrage = 0; // «Neu abfragen» (refresh) at most every five seconds
 
-// Protokollsprache: IPAM_LANG=de oder en (Vorgabe). Die Meldungen entstehen deutsch und
-// werden über dasselbe Wörterbuch übersetzt wie die Oberfläche.
+// Log language: IPAM_LANG=de or en (default). Messages are written in German and
+// translated through the same dictionary as the UI.
 const I18N = require('./public/i18n.js');
 I18N.setLang(String(process.env.IPAM_LANG || 'en').toLowerCase().startsWith('de') ? 'de' : 'en');
 
@@ -66,7 +66,7 @@ async function loadState() {
       zones: Array.isArray(parsed.zones) ? parsed.zones : [],
       vlans: Array.isArray(parsed.vlans) ? parsed.vlans : [],
       hosts: Array.isArray(parsed.hosts) ? parsed.hosts : [],
-      // Ausgeblendete Hinweise aus dem UniFi-Abgleich
+      // Dismissed notices from the UniFi comparison
       ignoriert: Array.isArray(parsed.ignoriert) ? parsed.ignoriert : [],
     };
     log(`geladen: ${state.vlans.length} VLANs, ${state.hosts.length} Hosts`);
@@ -86,7 +86,7 @@ async function loadState() {
   }
 }
 
-// Serialisierte, atomare Schreibvorgaenge.
+// Serialised, atomic writes.
 function persist() {
   writeChain = writeChain.then(async () => {
     const tmp = `${DATA_FILE}.tmp`;
@@ -97,13 +97,13 @@ function persist() {
 }
 
 function backupOnce() {
-  // Taegliche Kopie, damit ein Fehlgriff im UI nicht endgueltig ist.
+  // Daily copy, so a slip in the UI isn't final.
   const stamp = new Date().toISOString().slice(0, 10);
   const dest = path.join(DATA_DIR, `ipam-${stamp}.bak.json`);
   if (fs.existsSync(DATA_FILE) && !fs.existsSync(dest)) {
     try { fs.copyFileSync(DATA_FILE, dest); fs.chmodSync(dest, 0o600); } catch {}
   }
-  // Nur die letzten 14 Backups behalten.
+  // Keep only the last 14 backups.
   try {
     const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.bak.json')).sort();
     while (files.length > 14) fs.unlinkSync(path.join(DATA_DIR, files.shift()));
@@ -128,7 +128,7 @@ function readBody(req, limit = 64 * 1024) {
     req.on('data', (c) => {
       size += c.length;
       if (size > limit) {
-        // Nicht weiter lesen; der Aufrufer antwortet mit 413 und schliesst die Verbindung.
+        // Stop reading; the caller responds with 413 and closes the connection.
         req.pause();
         const err = new Error('Anfrage zu gross');
         err.status = 413;
@@ -148,8 +148,8 @@ function readBody(req, limit = 64 * 1024) {
 
 const str = (v, max = 400) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
-// IDs landen in URLs (/api/hosts/<id>). Nur harmlose Zeichen — sonst wird neu vergeben.
-// Eine ID wie «../users/<uid>» würde der Browser sonst zu einem anderen Endpunkt auflösen.
+// IDs end up in URLs (/api/hosts/<id>). Harmless characters only — otherwise a new one is
+// assigned. The browser would resolve an ID like «../users/<uid>» to a different endpoint.
 const ID_RE = /^[A-Za-z0-9-]{1,64}$/;
 const gueltigeId = (id) => (typeof id === 'string' && ID_RE.test(id) ? id : crypto.randomUUID());
 const zeitpunkt = (v) => (typeof v === 'string' && v.length <= 40 && !Number.isNaN(Date.parse(v)) ? v : new Date().toISOString());
@@ -164,7 +164,7 @@ function cleanVlan(input, existing = {}) {
     dhcpFrom: str(input.dhcpFrom, 60),
     dhcpTo: str(input.dhcpTo, 60),
     color: farbe(str(input.color, 20) || existing.color),
-    // Eine Zone aus UniFi wird nur dort geändert, nicht hier.
+    // A zone from UniFi is only changed there, not here.
     zone: existing.zoneAusUnifi ? str(existing.zone, 40) : str(input.zone, 40),
     zoneAusUnifi: existing.zoneAusUnifi === true,
     purpose: str(input.purpose, 200),
@@ -187,7 +187,7 @@ function cleanHost(input, existing = {}) {
     mac: str(input.mac, 40),
     role: str(input.role, 60),
     kind: ['statisch', 'dhcp', 'reserviert'].includes(input.kind) ? input.kind : (existing.kind || 'statisch'),
-    // Meldet sich nur ab und zu (etwa Batteriegeräte): nie als offline aufräumen.
+    // Only checks in now and then (e.g. battery devices): never clean up as offline.
     sporadisch: input.sporadisch === true,
     notes: str(input.notes, 4000),
     createdAt: zeitpunkt(existing.createdAt),
@@ -208,7 +208,7 @@ function zoneZuordnen(vlan) {
 const belegt = (vlanId, ip, ausserId) =>
   state.hosts.some((h) => h.vlanId === vlanId && h.ip === ip && h.id !== ausserId);
 
-// Ausgeblendete Hinweise: «In UniFi prüfen» (chk:…) und Auffälligkeiten der Übersicht (auf:…).
+// Dismissed notices: «In UniFi prüfen» (chk:…) and anomalies from the overview (auf:…).
 const HINWEIS_KEY = [
   /^chk:[\d.]+\|[0-9a-f:]{17}$/,
   /^auf:(pool|ipdup|mac|ausserhalb|overlap|gateway|zone|name):[0-9A-Za-z.:|-]{1,160}$/,
@@ -227,7 +227,7 @@ async function hinweiseAusblenden(req, res, url) {
     return send(res, 200, { ok: true, anzahl: state.ignoriert.length });
   }
   if (req.method === 'DELETE') {
-    // ?art=auf oder ?art=chk blendet nur diese Sorte wieder ein
+    // ?art=auf or ?art=chk shows only that kind again
     const art = url.searchParams.get('art');
     const vorher = state.ignoriert.length;
     state.ignoriert = art ? state.ignoriert.filter((i) => !i.key.startsWith(`${art}:`)) : [];
@@ -289,8 +289,8 @@ async function api(req, res, url) {
   }
 
   if (kind === 'hosts' && id === 'dedupe' && method === 'POST') {
-    // Je Netz und Adresse bleibt ein Eintrag. Behalten wird der aussagekräftigste;
-    // Felder, die nur im verworfenen Eintrag stehen, werden übernommen.
+    // One entry remains per network and address. The most informative one is kept;
+    // fields that only the discarded entry has are carried over.
     const gewicht = (h) => (h.kind === 'statisch' ? 100 : 0) +
       ['hostname', 'fqdn', 'mac', 'role', 'notes'].filter((f) => h[f]).length;
     const gruppen = new Map();
@@ -361,10 +361,10 @@ async function api(req, res, url) {
       }
     }
 
-    // Hinweise «In UniFi prüfen» ausblenden oder alle wieder einblenden.
+    // Dismiss «In UniFi prüfen» notices, or show all of them again.
     if (what === 'ignore') return hinweiseAusblenden(req, res, url);
 
-    // Probiert Eingaben aus, bevor sie gespeichert werden.
+    // Tries out the input before it is saved.
     if (what === 'test' && method === 'POST') {
       const config = unifi.withKnownKey(await readBody(req, 16 * 1024));
       try {
@@ -420,8 +420,8 @@ async function api(req, res, url) {
       const keys = new Set(Array.isArray(body.keys) ? body.keys : []);
       if (!keys.size) throw new Error('Keine Auswahl übergeben');
 
-      // Der Abgleich wird serverseitig neu berechnet, damit nur übernommen wird,
-      // was auch tatsächlich abweicht.
+      // The comparison is recomputed on the server, so that only what actually differs
+      // is applied.
       const data = await unifiLesen({ refresh: true });
       const d = unifi.diff(state, data);
       const angewendet = [];
@@ -476,8 +476,8 @@ async function api(req, res, url) {
         if (!keys.has(h.key)) continue;
         if (h.art === 'neu') {
           if (belegt(h.vlanId, h.unifi.ip)) { uebersprungen.push(h.unifi.ip); continue; }
-          // Eine feste Reservierung im Controller ist «reserviert». Steht unter der Adresse
-          // ein anderes Gerät als das reservierte, ist über dessen Art nichts bekannt.
+          // A fixed reservation in the controller is «reserviert». If a device other than the
+          // reserved one sits at the address, nothing is known about its kind.
           state.hosts.push(alsHost(h.vlanId, h.unifi, h.veraltet ? 'statisch' : 'reserviert'));
           angewendet.push(`Host ${h.unifi.ip} angelegt`);
         } else if (h.art === 'abweichend') {
@@ -508,7 +508,7 @@ async function api(req, res, url) {
         state.hosts = state.hosts.filter((h) => !weg.has(h.id));
       }
 
-      // Neu angelegte Netze gleich als «Zone aus UniFi» markieren.
+      // Mark newly created networks as «zone from UniFi» right away.
       unifi.zonenSpiegeln(state, data);
 
       if (!angewendet.length && !uebersprungen.length) {
@@ -625,8 +625,8 @@ async function serveStatic(res, pathname) {
 
 const auth = createAuth({ dataDir: DATA_DIR, log, send, readBody });
 
-// Jede Abfrage des Controllers spiegelt dabei die Sicherheitszonen in den Bestand.
-// `info.zonen` meldet dem Aufrufer, ob sich dabei etwas geändert hat.
+// Every controller query also mirrors the security zones into the inventory.
+// `info.zonen` tells the caller whether that changed anything.
 async function unifiLesen(opts, info = {}) {
   const data = await unifi.fetchAll(opts);
   const aenderungen = unifi.zonenSpiegeln(state, data);
@@ -638,9 +638,9 @@ async function unifiLesen(opts, info = {}) {
   return data;
 }
 
-// Entfernt Hosts, die UniFi länger als die eingestellte Frist nicht mehr gesehen hat.
-// Läuft automatisch nur, wenn eingeschaltet. Bricht ab, wenn verdächtig viele auf einmal
-// betroffen wären — dann stimmt eher etwas mit den Daten aus dem Controller nicht.
+// Removes hosts that UniFi hasn't seen for longer than the configured period.
+// Only runs automatically when switched on. Aborts if suspiciously many would be affected at
+// once — that more likely means something is wrong with the data from the controller.
 async function offlineAufraeumen({ vonHand = false } = {}) {
   const einst = unifi.offlineEinstellung(state);
   if (!unifi.isConfigured()) return { entfernt: [], grund: 'UniFi ist nicht eingerichtet' };
@@ -670,18 +670,18 @@ function offlinePlanen() {
   setInterval(lauf, OFFLINE_INTERVALL).unref();
 }
 
-// Ohne Anmeldung erreichbar: nur was die Anmeldemaske selbst braucht.
+// Reachable without login: only what the login form itself needs.
 const PUBLIC = new Set(['/login', '/login.html', '/login.js', '/i18n.js', '/style.css', '/icon.svg', '/logo.svg',
   '/fonts/plex-mono-400.woff2', '/fonts/plex-mono-500.woff2', '/fonts/plex-mono-600.woff2']);
 
-// Was die Rollen dürfen. Lesen dürfen alle; Administratoren alles.
+// What the roles may do. Everyone may read; administrators may do everything.
 const NUR_ADMIN = [/^\/api\/import$/, /^\/api\/unifi\/(config|test)$/, /^\/api\/unifi\/offline(\/run)?$/];
 
 function verboten(session, method, pathname) {
   if (session.role === 'admin') return '';
   if (NUR_ADMIN.some((re) => re.test(pathname))) return 'Nur für Administratoren';
   if (['GET', 'HEAD'].includes(method)) return '';
-  if (pathname === '/api/settings') return ''; // Erscheinungsbild darf jeder umschalten
+  if (pathname === '/api/settings') return ''; // anyone may switch the appearance
   if (session.role === 'bearbeiter') return '';
   return 'Nur Lesezugriff — für Änderungen braucht es die Rolle «Bearbeiten»';
 }
@@ -703,20 +703,19 @@ const redirect = (res, location) => { res.writeHead(302, { Location: location, '
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v);
-  // Über HTTPS: Browser sollen künftig nur noch verschlüsselt kommen.
+  // Over HTTPS: browsers should only connect encrypted from now on.
   if (auth.istSicher(req)) res.setHeader('Strict-Transport-Security', 'max-age=31536000');
   try {
     if (url.pathname === '/healthz') return send(res, 200, { ok: true });
 
     const isApi = url.pathname.startsWith('/api/');
-    // Nur kanonische API-Pfade: «/api/import/» oder «/api//import» würden sonst an der
-    // Rechteprüfung vorbei beim selben Endpunkt landen.
+    // Canonical API paths only: «/api/import/» or «/api//import» would otherwise reach the
+    // same endpoint while bypassing the permission check.
     if (isApi && url.pathname !== `/${url.pathname.split('/').filter(Boolean).join('/')}`) {
       return send(res, 404, { error: 'Unbekannter Endpunkt' });
     }
-    // Schreibende API-Aufrufe nur mit eigenem Header. Ein fremdes Formular oder
-    // eine fremde Seite kann ihn nicht setzen — das sperrt CSRF zuverlässig aus,
-    // zusätzlich zu SameSite=Strict am Cookie.
+    // Writing API calls only with a custom header. A foreign form or page cannot
+    // set it — that reliably locks out CSRF, on top of SameSite=Strict on the cookie.
     if (isApi && !['GET', 'HEAD'].includes(req.method) && req.headers['x-ipam-request'] !== '1') {
       return send(res, 403, { error: 'Anfrage abgelehnt' });
     }

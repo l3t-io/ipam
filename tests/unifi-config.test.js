@@ -7,7 +7,7 @@ const path = require('node:path');
 const { startServer, req } = require('./helpers');
 const { startFakeUnifi } = require('./fake-unifi');
 
-describe('UniFi-Anbindung in der Oberfläche', () => {
+describe('UniFi connection in the UI', () => {
   let srv;
   let ctl;
   before(async () => {
@@ -16,14 +16,14 @@ describe('UniFi-Anbindung in der Oberfläche', () => {
   });
   after(async () => { await srv.stop(); await ctl.stop(); });
 
-  test('ohne Einrichtung: nicht konfiguriert', async () => {
+  test('without setup: not configured', async () => {
     const r = await req(srv.base, 'GET', '/api/unifi/config');
     assert.equal(r.json.source, 'keine');
     assert.equal(r.json.configured, false);
     assert.equal((await req(srv.base, 'GET', '/api/state')).json.unifi, false);
   });
 
-  test('ungültige Eingaben werden abgelehnt', async () => {
+  test('invalid input is rejected', async () => {
     const faelle = [
       [{ url: 'kein-url', key: 'x' }, /gültige URL/],
       [{ url: 'ftp://10.1.1.1', key: 'x' }, /https:\/\//],
@@ -39,14 +39,14 @@ describe('UniFi-Anbindung in der Oberfläche', () => {
     }
   });
 
-  test('Verbindung testen: falscher Schlüssel wird gemeldet, nichts gespeichert', async () => {
+  test('test connection: wrong key is reported, nothing saved', async () => {
     const r = await req(srv.base, 'POST', '/api/unifi/test', { body: { url: ctl.url, key: 'falscher-schluessel', site: 'default' } });
     assert.equal(r.json.ok, false);
     assert.match(r.json.error, /abgelehnt/);
     assert.equal((await req(srv.base, 'GET', '/api/unifi/config')).json.source, 'keine');
   });
 
-  test('Verbindung testen: richtiger Schlüssel liefert eine Zusammenfassung', async () => {
+  test('test connection: correct key returns a summary', async () => {
     const r = await req(srv.base, 'POST', '/api/unifi/test', { body: { url: ctl.url, key: ctl.key, site: 'default' } });
     assert.equal(r.json.ok, true, r.json.error);
     assert.equal(r.json.version, '9.4.19');
@@ -55,11 +55,11 @@ describe('UniFi-Anbindung in der Oberfläche', () => {
     assert.equal(r.json.live, 1);
   });
 
-  test('Speichern: Schlüssel landet in unifi.json, nie in der Antwort', async () => {
+  test('save: key ends up in unifi.json, never in the response', async () => {
     const r = await req(srv.base, 'PUT', '/api/unifi/config', { body: { url: `${ctl.url}/`, key: ctl.key, site: 'default' } });
     assert.equal(r.status, 200);
     assert.equal(r.json.source, 'web');
-    assert.equal(r.json.url, ctl.url, 'Schrägstrich am Ende entfernt');
+    assert.equal(r.json.url, ctl.url, 'trailing slash removed');
     assert.equal(r.json.hasKey, true);
     assert.equal(r.json.keyHint, '…1234');
     assert.ok(!r.text.includes(ctl.key));
@@ -68,21 +68,21 @@ describe('UniFi-Anbindung in der Oberfläche', () => {
     assert.equal(datei.key, ctl.key);
   });
 
-  test('nach dem Speichern: UniFi aktiv, Abgleich läuft', async () => {
+  test('after saving: UniFi active, comparison runs', async () => {
     assert.equal((await req(srv.base, 'GET', '/api/state')).json.unifi, true);
     const d = await req(srv.base, 'GET', '/api/unifi/diff?refresh=1');
     assert.equal(d.status, 200, d.text);
     assert.equal(d.json.netze.filter((n) => n.art === 'neu').length, 1);
   });
 
-  test('Schlüssel steht weder im Bestand noch im Export', async () => {
+  test('key appears neither in the inventory nor in the export', async () => {
     const exp = await req(srv.base, 'GET', '/api/export');
     assert.ok(!exp.text.includes(ctl.key));
     assert.ok(!(await req(srv.base, 'GET', '/api/state')).text.includes(ctl.key));
     assert.ok(!fs.readFileSync(path.join(srv.dataDir, 'ipam.json'), 'utf8').includes(ctl.key));
   });
 
-  test('Schlüssel leer lassen behält den gespeicherten', async () => {
+  test('leaving the key empty keeps the saved one', async () => {
     const r = await req(srv.base, 'PUT', '/api/unifi/config', { body: { url: ctl.url, key: '', site: 'default', insecure: false } });
     assert.equal(r.status, 200);
     assert.equal(r.json.insecure, false);
@@ -90,7 +90,7 @@ describe('UniFi-Anbindung in der Oberfläche', () => {
     assert.equal(t.json.ok, true, t.json.error);
   });
 
-  test('geänderte Adresse ohne neuen Schlüssel: der alte wird nicht dorthin geschickt', async () => {
+  test('changed address without a new key: the old one is not sent there', async () => {
     const vorher = ctl.seenKeys.length;
     const fremd = 'http://127.0.0.1:1';
     const t = await req(srv.base, 'POST', '/api/unifi/test', { body: { url: fremd, site: 'default' } });
@@ -101,7 +101,7 @@ describe('UniFi-Anbindung in der Oberfläche', () => {
     assert.equal(ctl.seenKeys.length, vorher);
   });
 
-  test('gespeicherte Einstellung übersteht einen Neustart', async () => {
+  test('saved setting survives a restart', async () => {
     const { dataDir } = srv;
     await srv.stop();
     srv = await startServer({ dataDir, env: { IPAM_AUTH: 'off' } });
@@ -111,21 +111,21 @@ describe('UniFi-Anbindung in der Oberfläche', () => {
     assert.match(srv.logs, /UniFi-Anbindung aktiv \(aus der Oberfläche\)/);
   });
 
-  test('Entfernen löscht unifi.json', async () => {
+  test('removing deletes unifi.json', async () => {
     const r = await req(srv.base, 'DELETE', '/api/unifi/config');
     assert.equal(r.json.source, 'keine');
     assert.ok(!fs.existsSync(path.join(srv.dataDir, 'unifi.json')));
     assert.equal((await req(srv.base, 'GET', '/api/state')).json.unifi, false);
   });
 
-  test('ohne Header kein Speichern (CSRF)', async () => {
+  test('no saving without the header (CSRF)', async () => {
     const r = await req(srv.base, 'PUT', '/api/unifi/config', { csrf: false, body: { url: ctl.url, key: ctl.key } });
     assert.equal(r.status, 403);
   });
 });
 
-describe('UniFi aus der Compose-Datei', () => {
-  test('Umgebung gilt als Rückfall, die Oberfläche hat Vorrang', async () => {
+describe('UniFi from the Compose file', () => {
+  test('environment acts as fallback, the UI takes precedence', async () => {
     const srv = await startServer({
       env: { IPAM_AUTH: 'off', IPAM_UNIFI_URL: 'https://10.9.9.9', IPAM_UNIFI_KEY: 'aus-der-umgebung-abcd' },
     });
@@ -140,15 +140,15 @@ describe('UniFi aus der Compose-Datei', () => {
       assert.equal(r.json.url, 'https://10.1.1.1');
 
       r = await req(srv.base, 'DELETE', '/api/unifi/config');
-      assert.equal(r.json.source, 'umgebung', 'nach dem Entfernen gilt wieder die Compose-Datei');
+      assert.equal(r.json.source, 'umgebung', 'after removal the Compose file applies again');
     } finally {
       await srv.stop();
     }
   });
 });
 
-describe('UniFi-Einstellungen mit Anmeldung', () => {
-  test('ohne Sitzung nicht lesbar', async () => {
+describe('UniFi settings with sign-in', () => {
+  test('not readable without a session', async () => {
     const srv = await startServer();
     try {
       assert.equal((await req(srv.base, 'GET', '/api/unifi/config')).status, 401);
@@ -159,9 +159,9 @@ describe('UniFi-Einstellungen mit Anmeldung', () => {
   });
 });
 
-describe('Übernahme bei veralteter Reservierung', () => {
-  test('übernimmt das Gerät, das tatsächlich online ist', async () => {
-    // Im Controller ist .50 noch für «alt» reserviert, online ist aber «laptop» mit anderer MAC.
+describe('Applying with an outdated reservation', () => {
+  test('applies the device that is actually online', async () => {
+    // In the controller, .50 is still reserved for «alt», but «laptop» with a different MAC is online.
     const ctl = await startFakeUnifi({
       reservations: [{ name: 'alt', mac: 'aa:bb:cc:00:00:99', fixed_ip: '10.13.20.50', use_fixedip: true }],
     });
@@ -186,7 +186,7 @@ describe('Übernahme bei veralteter Reservierung', () => {
   });
 });
 
-describe('Sicherheitszonen aus UniFi', () => {
+describe('Security zones from UniFi', () => {
   const abgleich = async (zonen) => {
     const ctl = await startFakeUnifi({ zonen });
     const srv = await startServer({ env: { IPAM_AUTH: 'off' } });
@@ -195,7 +195,7 @@ describe('Sicherheitszonen aus UniFi', () => {
     return { ctl, srv, d };
   };
 
-  test('Integration API: Zone wird mitgelesen und beim Übernehmen gespeichert', async () => {
+  test('Integration API: zone is read along and saved when applying', async () => {
     const { ctl, srv, d } = await abgleich('integration');
     try {
       const n = d.json.netze.find((x) => x.art === 'neu');
@@ -207,7 +207,7 @@ describe('Sicherheitszonen aus UniFi', () => {
     } finally { await srv.stop(); await ctl.stop(); }
   });
 
-  test('ältere API mit eigenen Netz-IDs: Zuordnung über das Subnetz', async () => {
+  test('older API with its own network IDs: matching via the subnet', async () => {
     const { ctl, srv, d } = await abgleich('klassisch');
     try {
       assert.equal(d.json.netze.find((x) => x.art === 'neu').unifi.zone, 'DMZ');
@@ -215,7 +215,7 @@ describe('Sicherheitszonen aus UniFi', () => {
     } finally { await srv.stop(); await ctl.stop(); }
   });
 
-  test('Netze über die ältere API, Zonen über die neue: Zuordnung über die VLAN-ID', async () => {
+  test('networks via the older API, zones via the new one: matching via the VLAN ID', async () => {
     const ctl = await startFakeUnifi({ zonen: 'integration', netzeOhneSubnetz: true });
     const srv = await startServer({ env: { IPAM_AUTH: 'off' } });
     try {
@@ -227,7 +227,7 @@ describe('Sicherheitszonen aus UniFi', () => {
     } finally { await srv.stop(); await ctl.stop(); }
   });
 
-  test('Diagnose, wenn keine Zonen kommen', async () => {
+  test('diagnosis when no zones arrive', async () => {
     const ctl = await startFakeUnifi({ zonen: 'keine' });
     const srv = await startServer({ env: { IPAM_AUTH: 'off' } });
     try {
@@ -237,7 +237,7 @@ describe('Sicherheitszonen aus UniFi', () => {
     } finally { await srv.stop(); await ctl.stop(); }
   });
 
-  test('ohne Zonen im Controller bleibt das Feld leer, ohne Fehler', async () => {
+  test('without zones in the controller the field stays empty, without error', async () => {
     const { ctl, srv, d } = await abgleich('keine');
     try {
       assert.equal(d.status, 200);
@@ -245,7 +245,7 @@ describe('Sicherheitszonen aus UniFi', () => {
     } finally { await srv.stop(); await ctl.stop(); }
   });
 
-  test('Zone wird automatisch gespiegelt, ohne Auswahl und Übernehmen', async () => {
+  test('zone is mirrored automatically, without selecting and applying', async () => {
     const ctl = await startFakeUnifi();
     const srv = await startServer({ env: { IPAM_AUTH: 'off' } });
     try {
@@ -253,7 +253,7 @@ describe('Sicherheitszonen aus UniFi', () => {
       const lab = (await req(srv.base, 'POST', '/api/vlans', { body: { vid: 99, name: 'Lab', cidr: '10.99.0.0/24', zone: 'Labor' } })).json;
       await req(srv.base, 'PUT', '/api/unifi/config', { body: { url: ctl.url, key: ctl.key, site: 'default' } });
 
-      // Schon das normale Laden der Seite (Live-Daten) genügt.
+      // Just loading the page normally (live data) is enough.
       await req(srv.base, 'GET', '/api/unifi/live');
       let vlans = (await req(srv.base, 'GET', '/api/state')).json.vlans;
       const s1 = vlans.find((v) => v.id === server.id);
@@ -263,20 +263,20 @@ describe('Sicherheitszonen aus UniFi', () => {
       assert.match(srv.logs, /Zone «Internal» angelegt/);
 
       const d = await req(srv.base, 'GET', '/api/unifi/diff?refresh=1');
-      assert.ok(!d.json.netze.some((n) => n.art === 'abweichend'), 'nichts mehr zu übernehmen');
+      assert.ok(!d.json.netze.some((n) => n.art === 'abweichend'), 'nothing left to apply');
 
-      // Von Hand lässt sich eine Zone aus UniFi nicht überschreiben …
+      // A zone from UniFi cannot be overwritten by hand …
       const p = await req(srv.base, 'PATCH', `/api/vlans/${server.id}`, { body: { zone: 'DMZ', name: 'Server neu' } });
       assert.equal(p.json.zone, 'Internal');
       assert.equal(p.json.name, 'Server neu');
-      // … bei einem Netz, das UniFi nicht kennt, schon.
+      // … but it can for a network that UniFi does not know.
       vlans = (await req(srv.base, 'GET', '/api/state')).json.vlans;
       assert.equal(vlans.find((v) => v.id === lab.id).zoneAusUnifi, false);
       assert.equal((await req(srv.base, 'PATCH', `/api/vlans/${lab.id}`, { body: { zone: 'Werkstatt' } })).json.zone, 'Werkstatt');
     } finally { await srv.stop(); await ctl.stop(); }
   });
 
-  test('liefert der Controller keine Zonen, bleiben die eigenen unangetastet', async () => {
+  test('if the controller returns no zones, our own stay untouched', async () => {
     const ctl = await startFakeUnifi({ zonen: 'keine' });
     const srv = await startServer({ env: { IPAM_AUTH: 'off' } });
     try {
@@ -290,8 +290,8 @@ describe('Sicherheitszonen aus UniFi', () => {
   });
 });
 
-describe('Hinweise «In UniFi prüfen» ausblenden', () => {
-  test('ausblenden, bleibt nach Neustart weg, kommt bei geänderter Reservierung zurück', async () => {
+describe('Hiding «Check in UniFi» notices', () => {
+  test('hide, stays hidden after restart, returns when the reservation changes', async () => {
     const alt = { name: 'SonosZP', mac: '02:00:00:5a:0b:02', fixed_ip: '10.13.20.50', use_fixedip: true, last_seen: Math.floor(Date.now() / 1000) - 200 * 86400 };
     let ctl = await startFakeUnifi({ reservations: [alt] });
     let srv = await startServer({ env: { IPAM_AUTH: 'off' } });
@@ -313,9 +313,9 @@ describe('Hinweise «In UniFi prüfen» ausblenden', () => {
       await srv.stop();
       srv = await startServer({ dataDir, env: { IPAM_AUTH: 'off' } });
       d = (await req(srv.base, 'GET', '/api/unifi/diff?refresh=1')).json;
-      assert.equal(d.pruefen.length, 0, 'bleibt nach Neustart ausgeblendet');
+      assert.equal(d.pruefen.length, 0, 'stays hidden after restart');
 
-      // Reservierung zeigt jetzt auf ein anderes altes Gerät → neuer Hinweis
+      // Reservation now points to a different old device → new notice
       await ctl.stop();
       ctl = await startFakeUnifi({ reservations: [{ ...alt, mac: '02:00:00:5a:0b:99' }] });
       await req(srv.base, 'PUT', '/api/unifi/config', { body: { url: ctl.url, key: ctl.key, site: 'default' } });
@@ -326,7 +326,7 @@ describe('Hinweise «In UniFi prüfen» ausblenden', () => {
     } finally { await srv.stop(); await ctl.stop(); }
   });
 
-  test('«Lesen» darf nichts ausblenden', async () => {
+  test('«Read» may not hide anything', async () => {
     const srv = await startServer();
     try {
       const admin = (await req(srv.base, 'POST', '/api/auth/setup', { body: { code: srv.setupCode(), user: 'tony', password: 'korrekt-pferd-batterie' } })).cookie;
@@ -338,8 +338,8 @@ describe('Hinweise «In UniFi prüfen» ausblenden', () => {
   });
 });
 
-describe('Typ aus Reservierungen', () => {
-  test('neue Reservierung wird als «reserviert» angelegt, bestehende lässt sich korrigieren', async () => {
+describe('Type from reservations', () => {
+  test('new reservation is created as «reserviert», existing one can be corrected', async () => {
     const drucker = { name: 'drucker', mac: 'aa:bb:cc:00:00:21', fixed_ip: '10.13.20.21', use_fixedip: true, last_seen: Math.floor(Date.now() / 1000) };
     const nas = { name: 'nas', mac: 'aa:bb:cc:00:00:22', fixed_ip: '10.13.20.22', use_fixedip: true, last_seen: Math.floor(Date.now() / 1000) };
     const ctl = await startFakeUnifi({ reservations: [drucker, nas] });

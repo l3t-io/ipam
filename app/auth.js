@@ -1,15 +1,15 @@
 'use strict';
 
-// Anmeldung und Benutzerverwaltung für l3t-ipam — ohne externe Abhängigkeiten.
+// Login and user management for l3t-ipam — without external dependencies.
 //
-// Konten:    data/auth.json, mehrere Benutzer mit Rolle, Passwörter als scrypt-Hash.
-//            Zusätzlich optional ein festes Administratorkonto über IPAM_USER/IPAM_PASS.
-// Rollen:    admin (alles), bearbeiter (Bestand pflegen), leser (nur ansehen).
-// Sitzungen: zufälliges Token im Cookie (HttpOnly, SameSite=Strict), serverseitig
-//            nur als SHA-256-Hash in data/sessions.json abgelegt. Rolle und Konto werden
-//            bei jeder Anfrage frisch nachgeschlagen — eine Änderung wirkt sofort.
-// Schutz:    Sperre pro Adresse nach wiederholten Fehlversuchen, globale Bremse,
-//            Verzögerung bei jedem Fehlversuch, Einrichtungscode nur im Container-Protokoll.
+// Accounts:   data/auth.json, several users with a role, passwords as scrypt hashes.
+//             Optionally also a fixed administrator account via IPAM_USER/IPAM_PASS.
+// Roles:      admin (everything), bearbeiter (maintain inventory), leser (view only).
+// Sessions:   random token in the cookie (HttpOnly, SameSite=Strict), stored on the server
+//             only as a SHA-256 hash in data/sessions.json. Role and account are looked up
+//             afresh on every request — a change takes effect immediately.
+// Protection: per-address lockout after repeated failures, global throttle,
+//             delay on every failure, setup code only in the container log.
 
 const fsp = require('node:fs/promises');
 const path = require('node:path');
@@ -26,18 +26,18 @@ const SCRYPT = { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
 const KEYLEN = 64;
 
 const HOUR = 60 * 60 * 1000;
-const IDLE = 12 * HOUR;                 // ohne «angemeldet bleiben»
-const ABSOLUTE = 7 * 24 * HOUR;         // ohne «angemeldet bleiben»
-const REMEMBER = 30 * 24 * HOUR;        // mit «angemeldet bleiben»
-const MAX_SESSIONS = 1000;              // insgesamt
-const MAX_SESSIONS_PRO_KONTO = 20;      // ältere Sitzungen desselben Kontos fallen weg
+const IDLE = 12 * HOUR;                 // without «stay signed in»
+const ABSOLUTE = 7 * 24 * HOUR;         // without «stay signed in»
+const REMEMBER = 30 * 24 * HOUR;        // with «stay signed in»
+const MAX_SESSIONS = 1000;              // in total
+const MAX_SESSIONS_PRO_KONTO = 20;      // older sessions of the same account are dropped
 
 const WINDOW = 15 * 60 * 1000;
-const MAX_FAILS_PER_IP = 10;            // danach 15 Minuten gesperrt
-const MAX_FAILS_GLOBAL = 100;           // pro Stunde über alle Adressen: danach nur bremsen
-const MAX_FAILS_PRO_KONTO = 10;         // je Benutzername in 15 Minuten: danach nur bremsen
-const BREMSE = 3000;                    // ms zusätzlich, wenn eine der beiden Grenzen erreicht ist
-const FAIL_DELAY = 750;                 // ms, bremst automatisiertes Raten
+const MAX_FAILS_PER_IP = 10;            // then locked for 15 minutes
+const MAX_FAILS_GLOBAL = 100;           // per hour across all addresses: then only throttle
+const MAX_FAILS_PRO_KONTO = 10;         // per username in 15 minutes: then only throttle
+const BREMSE = 3000;                    // extra ms once either of these two limits is reached
+const FAIL_DELAY = 750;                 // ms, slows down automated guessing
 const MAX_PARALLEL_HASHES = 4;
 
 function scryptAsync(pass, salt, opts) {
@@ -63,13 +63,13 @@ async function verifyPassword(pass, stored) {
 
 const sha256 = (s) => crypto.createHash('sha256').update(String(s)).digest();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-// Kennung des aktuellen Passworts: ändert es sich, sind alle alten Sitzungen ungültig.
+// Tag of the current password: if it changes, all old sessions become invalid.
 const generation = (hash) => sha256(hash).toString('hex').slice(0, 16);
 const sameName = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
-// Steuerzeichen aus Benutzereingaben, bevor sie ins Protokoll gehen.
+// Strip control characters from user input before it goes into the log.
 const fuersLog = (s) => String(s).slice(0, 64).replace(/[\u0000-\u001f\u007f]/g, '?');
 
-// IPv4-Adresse gegen eine Adresse oder ein Netz (CIDR) prüfen.
+// Match an IPv4 address against an address or a network (CIDR).
 const ipZahl = (ip) => {
   const p = String(ip).split('.');
   if (p.length !== 4 || p.some((x) => !/^\d{1,3}$/.test(x) || Number(x) > 255)) return null;
@@ -87,7 +87,7 @@ function passtIp(ip, eintrag) {
   return ((a & maske) >>> 0) === ((n & maske) >>> 0);
 }
 
-// Gut lesbar, ohne verwechselbare Zeichen wie 0/O oder 1/I/L.
+// Easy to read, without confusable characters such as 0/O or 1/I/L.
 function setupCode() {
   const abc = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   const bytes = crypto.randomBytes(12);
@@ -114,8 +114,8 @@ function createAuth({ dataDir, env = process.env, log = console.log, send, readB
   const AUTH_FILE = path.join(dataDir, 'auth.json');
   const SESSION_FILE = path.join(dataDir, 'sessions.json');
   const disabled = ['off', '0', 'false', 'aus'].includes(String(env.IPAM_AUTH || '').toLowerCase());
-  // IPAM_TRUST_PROXY: «1» vertraut Proxy-Headern von überall (nur sinnvoll, wenn der Port
-  // nicht direkt erreichbar ist); eine Liste wie «172.17.0.1, 10.0.0.0/8» nur von dort.
+  // IPAM_TRUST_PROXY: «1» trusts proxy headers from anywhere (only sensible if the port is
+  // not directly reachable); a list such as «172.17.0.1, 10.0.0.0/8» only from there.
   const trustRoh = String(env.IPAM_TRUST_PROXY || '').trim().toLowerCase();
   const trustAlle = ['1', 'true', 'on', 'ja'].includes(trustRoh);
   const trustListe = trustAlle || ['', '0', 'false', 'off', 'nein'].includes(trustRoh)
@@ -126,8 +126,8 @@ function createAuth({ dataDir, env = process.env, log = console.log, send, readB
 
   // { id, user, hash, role, source: 'datei' | 'umgebung', createdAt, lastLogin }
   let accounts = [];
-  let code = null;             // Einrichtungscode, solange kein Konto existiert
-  let dummyHash = '';          // für gleiche Laufzeit bei unbekanntem Benutzernamen
+  let code = null;             // setup code, as long as no account exists
+  let dummyHash = '';          // for equal timing with an unknown username
   const sessions = new Map();  // sha256(token) hex -> { uid, gen, created, seen, remember }
   const fails = new Map();     // ip -> { times: [], lockedUntil }
   let globalFails = [];
@@ -135,7 +135,7 @@ function createAuth({ dataDir, env = process.env, log = console.log, send, readB
   let hashing = 0;
   let lastSessionWrite = 0;
 
-  /* ---------- Speicher ---------- */
+  /* ---------- Storage ---------- */
 
   async function writeJson(file, data) {
     const tmp = `${file}.tmp`;
@@ -147,7 +147,7 @@ function createAuth({ dataDir, env = process.env, log = console.log, send, readB
   function persistAccounts() {
     const users = accounts.filter((a) => a.source === 'datei')
       .map(({ id, user, hash, role, createdAt, changedAt, lastLogin }) => ({ id, user, hash, role, createdAt, changedAt, lastLogin }));
-    // Ein gescheiterter Schreibvorgang darf die folgenden nicht blockieren.
+    // A failed write must not block the following ones.
     accountChain = accountChain.catch(() => {}).then(() => writeJson(AUTH_FILE, { version: 2, users }));
     return accountChain;
   }
@@ -161,7 +161,7 @@ function createAuth({ dataDir, env = process.env, log = console.log, send, readB
     return sessionChain;
   }
 
-  // Liest auth.json. Das Format aus 1.5/1.6 (ein Konto) wird zu einem Administrator.
+  // Reads auth.json. The 1.5/1.6 format (a single account) becomes an administrator.
   async function loadAccounts() {
     let raw;
     try {
@@ -220,13 +220,13 @@ function createAuth({ dataDir, env = process.env, log = console.log, send, readB
       log('================================================================');
     }
 
-    // Sitzungen nur übernehmen, wenn Konto und Passwort noch stimmen. Ein Konto aus der
-    // Umgebung bekommt bei jedem Start einen neuen Hash — dort beginnt jede Sitzung neu.
+    // Only restore sessions whose account and password still match. An account from the
+    // environment gets a new hash on every start — there, every session starts afresh.
     try {
       const s = JSON.parse(await fsp.readFile(SESSION_FILE, 'utf8'));
       for (const e of s.sessions || []) {
         if (typeof e.h !== 'string') continue;
-        // Sitzungen aus 1.5/1.6 kennen nur den Namen.
+        // Sessions from 1.5/1.6 only know the name.
         const acc = e.uid ? accounts.find((a) => a.id === e.uid) : accounts.find((a) => a.user === e.user);
         if (acc && acc.source === 'datei' && e.gen === generation(acc.hash)) {
           sessions.set(e.h, { uid: acc.id, gen: e.gen, created: e.created, seen: e.seen, remember: !!e.remember });
@@ -236,7 +236,7 @@ function createAuth({ dataDir, env = process.env, log = console.log, send, readB
     } catch {}
   }
 
-  /* ---------- Sitzungen ---------- */
+  /* ---------- Sessions ---------- */
 
   function expired(s, now = Date.now()) {
     if (s.remember) return now - s.created > REMEMBER;
@@ -267,7 +267,7 @@ function createAuth({ dataDir, env = process.env, log = console.log, send, readB
       uid: acc.id, gen: generation(acc.hash), created: now, seen: now, remember: !!remember,
     });
     purge();
-    // Ein Konto kann nicht mit vielen Anmeldungen die Sitzungen aller anderen verdrängen.
+    // A single account cannot push out everyone else's sessions by logging in many times.
     const eigene = [...sessions].filter(([, s]) => s.uid === acc.id).sort((x, y) => x[1].created - y[1].created);
     while (eigene.length > MAX_SESSIONS_PRO_KONTO) sessions.delete(eigene.shift()[0]);
     while (sessions.size > MAX_SESSIONS) sessions.delete(sessions.keys().next().value);
@@ -291,24 +291,24 @@ function createAuth({ dataDir, env = process.env, log = console.log, send, readB
       return null;
     }
     s.seen = Date.now();
-    // Zuletzt-gesehen nur gelegentlich schreiben, nicht bei jeder Anfrage.
+    // Write last-seen only occasionally, not on every request.
     if (Date.now() - lastSessionWrite > 5 * 60 * 1000) persistSessions();
     return { hash: h, uid: acc.id, user: acc.user, role: acc.role, source: acc.source };
   }
 
-  // Für jede Anfrage ausserhalb von /api/auth: angemeldet oder nicht, und mit welcher Rolle?
+  // For every request outside /api/auth: signed in or not, and with which role?
   function check(req) {
     if (disabled) return { user: null, role: 'admin' };
     return lookup(req);
   }
 
-  /* ---------- Schutz vor Raten ---------- */
+  /* ---------- Protection against guessing ---------- */
 
   function clientIp(req) {
     if (vomProxy(req)) {
       const cf = req.headers['cf-connecting-ip'];
       if (cf) return String(cf).trim();
-      // Letzter Eintrag = vom nächstgelegenen Proxy angehängt, also nicht vom Client fälschbar.
+      // Last entry = appended by the nearest proxy, so the client cannot forge it.
       const xff = String(req.headers['x-forwarded-for'] || '').split(',').map((s) => s.trim()).filter(Boolean);
       if (xff.length) return xff[xff.length - 1];
     }
@@ -317,14 +317,14 @@ function createAuth({ dataDir, env = process.env, log = console.log, send, readB
 
   function blocked(ip) {
     const now = Date.now();
-    // Keine globale Sperre mehr: Sie liess sich missbrauchen, um alle auszusperren.
-    // Viele Fehlversuche insgesamt oder je Konto bremsen nur (siehe fail()).
+    // No global lockout any more: it could be abused to lock everyone out.
+    // Many failures in total or per account only throttle (see fail()).
     const f = fails.get(ip);
     if (f && f.lockedUntil > now) return Math.ceil((f.lockedUntil - now) / 1000);
     return 0;
   }
 
-  const kontoFails = new Map(); // Benutzername -> Zeitpunkte der Fehlversuche
+  const kontoFails = new Map(); // username -> timestamps of failed attempts
 
   function recordFail(ip, konto = '') {
     const now = Date.now();
@@ -375,7 +375,7 @@ function createAuth({ dataDir, env = process.env, log = console.log, send, readB
     return '';
   }
 
-  /* ---------- Endpunkte unter /api/auth ---------- */
+  /* ---------- Endpoints under /api/auth ---------- */
 
   async function handle(req, res, url) {
     const what = url.pathname.split('/').filter(Boolean)[2];
@@ -406,7 +406,7 @@ function createAuth({ dataDir, env = process.env, log = console.log, send, readB
       const user = typeof body.user === 'string' ? body.user.trim() : '';
       const pass = typeof body.password === 'string' ? body.password.slice(0, MAX_PASS) : '';
       const acc = accounts.find((a) => sameName(a.user, user));
-      // Passwort immer prüfen, auch bei unbekanntem Namen — sonst verrät die Laufzeit gültige Namen.
+      // Always check the password, even for an unknown name — otherwise timing reveals valid names.
       const passOk = await withHashSlot(() => verifyPassword(pass, acc ? acc.hash : dummyHash));
       if (!acc || !passOk) return fail(res, ip, 401, 'Benutzername oder Passwort falsch', `Benutzer «${fuersLog(user)}»`, user.slice(0, 64));
       fails.delete(ip);
@@ -429,7 +429,7 @@ function createAuth({ dataDir, env = process.env, log = console.log, send, readB
       if (!USER_RE.test(user)) return send(res, 400, { error: 'Benutzername: 1–64 Zeichen, erlaubt sind Buchstaben, Ziffern und . _ @ -' });
       const problem = validNewPassword(body.password, user);
       if (problem) return send(res, 400, { error: problem });
-      // Zwei gleichzeitige Einrichtungen mit gültigem Code dürfen nicht beide durchlaufen.
+      // Two concurrent setups with a valid code must not both go through.
       if (einrichtungLaeuft || accounts.length) return send(res, 409, { error: 'Konto ist bereits eingerichtet' });
       einrichtungLaeuft = true;
       const now = new Date().toISOString();
@@ -479,7 +479,7 @@ function createAuth({ dataDir, env = process.env, log = console.log, send, readB
       acc.hash = await withHashSlot(() => hashPassword(body.next));
       acc.changedAt = new Date().toISOString();
       await persistAccounts();
-      // Alle anderen Geräte abmelden, die aktuelle Sitzung bleibt und zieht mit.
+      // Sign out all other devices; the current session stays and moves along.
       endSessionsOf(acc.id, s.hash);
       const eigene = sessions.get(s.hash);
       if (eigene) eigene.gen = generation(acc.hash);
@@ -491,7 +491,7 @@ function createAuth({ dataDir, env = process.env, log = console.log, send, readB
     return send(res, 404, { error: 'Unbekannter Endpunkt' });
   }
 
-  /* ---------- Benutzerverwaltung unter /api/users (nur Administratoren) ---------- */
+  /* ---------- User management under /api/users (administrators only) ---------- */
 
   const adminCount = () => accounts.filter((a) => a.role === 'admin').length;
 

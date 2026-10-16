@@ -1,12 +1,12 @@
 'use strict';
 
-// Anbindung an einen UniFi-Controller. Lesend, ohne externe Abhaengigkeiten.
+// Connection to a UniFi controller. Read-only, no external dependencies.
 //
-// Hauptweg:   offizielle Integration API  /proxy/network/integration/v1  (X-API-KEY)
-// Rueckfall:  klassische Controller-API   /proxy/network/api/s/<site>    (X-API-KEY, sonst Sitzung)
+// Primary:    official Integration API    /proxy/network/integration/v1  (X-API-KEY)
+// Fallback:   classic controller API      /proxy/network/api/s/<site>    (X-API-KEY, else session)
 //
-// Die klassische API liefert Netze und DHCP-Reservierungen, die die Integration API
-// je nach Firmwarestand noch nicht ausgibt. Deshalb werden beide Wege probiert.
+// The classic API returns networks and DHCP reservations that the Integration API may not
+// expose yet, depending on the firmware version. That is why both routes are tried.
 
 const https = require('node:https');
 const http = require('node:http');
@@ -18,9 +18,9 @@ const path = require('node:path');
 const { URL } = require('node:url');
 const zones = require('./zones');
 
-// Zugangsdaten: in der Oberfläche gepflegt und in data/unifi.json abgelegt.
-// Die Variablen aus der Compose-Datei gelten nur, solange dort nichts gespeichert ist.
-// unifi.json liegt bewusst getrennt von ipam.json, damit der Schlüssel nie im Export landet.
+// Credentials: maintained in the web UI and stored in data/unifi.json.
+// The variables from the Compose file only apply as long as nothing is saved there.
+// unifi.json is deliberately kept apart from ipam.json so the key never ends up in an export.
 let configFile = '';
 let stored = null; // { url, key, site, insecure, updatedAt }
 
@@ -31,9 +31,9 @@ const ENV = () => ({
   insecure: process.env.IPAM_UNIFI_INSECURE !== '0',
 });
 
-// Konto für Controller ohne Integration API: nur über die Umgebung — und nur für den
-// Controller, für den es dort steht. Sonst würde ein Wechsel der Adresse in der
-// Oberfläche Benutzername und Passwort an einen fremden Server schicken.
+// Account for controllers without the Integration API: only via the environment — and only
+// for the controller it is defined for there. Otherwise changing the address in the web UI
+// would send the username and password to a foreign server.
 const CFG = () => {
   const env = ENV();
   const basis = stored || env;
@@ -61,7 +61,7 @@ function init(dataDir) {
   }
 }
 
-// Prüft und vereinheitlicht eine Eingabe. Wirft bei ungültigen Werten.
+// Validates and normalises an input. Throws on invalid values.
 function cleanConfig(input, { requireKey = true } = {}) {
   const url = String(input.url || '').trim().replace(/\/+$/, '');
   let u;
@@ -77,9 +77,8 @@ function cleanConfig(input, { requireKey = true } = {}) {
   return { url: u.origin, key, site, insecure: input.insecure !== false, updatedAt: input.updatedAt || undefined };
 }
 
-// Ergänzt einen leer gelassenen Schlüssel aus der gespeicherten Konfiguration —
-// aber nur für denselben Controller. Sonst könnte ein geänderter Eintrag den
-// Schlüssel an eine fremde Adresse schicken.
+// Fills in a key left empty from the saved configuration — but only for the same
+// controller. Otherwise a changed entry could send the key to a foreign address.
 function withKnownKey(input) {
   const cur = CFG();
   const next = cleanConfig({ ...input, key: input.key || '' }, { requireKey: false });
@@ -99,9 +98,9 @@ async function schreiben(cfg) {
 
 async function saveConfig(input) {
   const next = { ...withKnownKey(input), updatedAt: new Date().toISOString() };
-  // Zertifikat merken («trust on first use»): Bei jedem Speichern wird das aktuelle
-  // Zertifikat übernommen — so lässt sich ein bewusst erneuertes Zertifikat bestätigen.
-  // Ist der Controller gerade nicht erreichbar, wird es bei der ersten Verbindung gemerkt.
+  // Pin the certificate («trust on first use»): every save takes over the current
+  // certificate — this is how a deliberately renewed certificate gets confirmed.
+  // If the controller is unreachable right now, it is pinned on the first connection.
   if (merkbar(next)) {
     const fp = await zertifikatLesen(next.url).catch(() => '');
     if (fp) { next.pin = fp; next.pinAt = new Date().toISOString(); }
@@ -119,7 +118,7 @@ async function clearConfig() {
   return publicConfig();
 }
 
-// Was die Oberfläche sehen darf: alles ausser dem Schlüssel selbst.
+// What the web UI may see: everything except the key itself.
 function publicConfig() {
   const c = CFG();
   return {
@@ -131,7 +130,7 @@ function publicConfig() {
     keyHint: c.key.length >= 12 ? `…${c.key.slice(-4)}` : '',
     updatedAt: stored ? stored.updatedAt : undefined,
     configured: isConfigured(),
-    // Gemerktes Zertifikat (nur bei ausgeschalteter CA-Prüfung)
+    // Pinned certificate (only when CA verification is off)
     zertifikat: c.pin || '',
     zertifikatSeit: c.pin && stored ? stored.pinAt : undefined,
   };
@@ -144,13 +143,13 @@ const isConfigured = () => {
 
 /* ---------- HTTP ---------- */
 
-const MAX_ANTWORT = 20 * 1024 * 1024; // ein feindseliger Controller darf den Speicher nicht füllen
+const MAX_ANTWORT = 20 * 1024 * 1024; // a hostile controller must not fill up memory
 
 const FP_RE = /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/;
-// Ein Fingerabdruck wird nur gebraucht, wenn das Zertifikat nicht über eine CA geprüft wird.
+// A fingerprint is only needed when the certificate is not verified against a CA.
 const merkbar = (c) => Boolean(c && c.insecure && String(c.url).startsWith('https:'));
 
-// Baut die TLS-Verbindung auf, ohne schon etwas zu senden.
+// Establishes the TLS connection without sending anything yet.
 function tlsVerbinden(u, timeout) {
   return new Promise((resolve, reject) => {
     const host = u.hostname.replace(/^\[|\]$/g, '');
@@ -163,7 +162,7 @@ function tlsVerbinden(u, timeout) {
   });
 }
 
-// SHA-256-Fingerabdruck des Zertifikats, das der Controller vorzeigt.
+// SHA-256 fingerprint of the certificate the controller presents.
 async function zertifikatLesen(url, timeout = 8000) {
   const sock = await tlsVerbinden(new URL(url), timeout);
   const fp = sock.getPeerCertificate().fingerprint256 || '';
@@ -173,8 +172,8 @@ async function zertifikatLesen(url, timeout = 8000) {
 
 const kurz = (fp) => `${fp.slice(0, 23)}…`;
 
-// Ist ein Zertifikat gemerkt, wird zuerst verbunden und verglichen — erst danach gehen
-// API-Schlüssel oder Passwort über die Leitung.
+// If a certificate is pinned, connect and compare first — only then do the API key or
+// password go over the wire.
 async function request(target, opts = {}) {
   const u = new URL(target);
   if (u.protocol !== 'https:' || !opts.pin) return anfrage(u, opts);
@@ -217,15 +216,15 @@ function anfrage(u, { method = 'GET', headers = {}, body, insecure, timeout = 80
       res.on('end', () => {
         const text = Buffer.concat(chunks).toString('utf8');
         let json = null;
-        try { json = JSON.parse(text); } catch { /* kein JSON */ }
+        try { json = JSON.parse(text); } catch { /* not JSON */ }
         resolve({ status: res.statusCode, headers: res.headers, json, text });
       });
     });
 
     req.on('error', (err) => reject(new Error(`${err.code || 'Netzwerkfehler'}: ${err.message}`)));
     req.setTimeout(timeout, () => { req.destroy(new Error('Zeitüberschreitung')); });
-    // Zusätzlich eine Obergrenze für die ganze Anfrage: Ein Server, der Byte für Byte
-    // tröpfelt, würde das Leerlauf-Timeout sonst nie auslösen.
+    // Plus an upper limit for the whole request: a server trickling out byte by byte
+    // would otherwise never trigger the idle timeout.
     const gesamt = setTimeout(() => req.destroy(new Error('Zeitüberschreitung')), timeout * 3);
     req.on('close', () => clearTimeout(gesamt));
     if (payload) req.write(payload);
@@ -233,7 +232,7 @@ function anfrage(u, { method = 'GET', headers = {}, body, insecure, timeout = 80
   });
 }
 
-/* ---------- Anmeldung ---------- */
+/* ---------- Sign-in ---------- */
 
 let session = null; // { cookie, csrf }
 
@@ -253,7 +252,7 @@ async function login(c) {
   return session;
 }
 
-// Ruft einen Pfad ab. Erst mit Schluessel, bei 401/403 einmalig mit Sitzung.
+// Fetches a path. First with the key, on 401/403 once more with a session.
 async function get(path, c, { allow404 = false } = {}) {
   const attempt = async (headers) => request(`${c.url}${path}`, { headers, insecure: c.insecure, pin: c.pin });
 
@@ -277,7 +276,7 @@ async function get(path, c, { allow404 = false } = {}) {
   return res.json;
 }
 
-/* ---------- Normalisierung ---------- */
+/* ---------- Normalisation ---------- */
 
 const ipToInt = (ip) => {
   const p = String(ip ?? '').trim().split('.');
@@ -293,8 +292,8 @@ const ipToInt = (ip) => {
 };
 const intToIp = (n) => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
 
-// UniFi speichert in ip_subnet die Gateway-Adresse samt Praefix, etwa 10.13.37.1/24.
-// Daraus werden Netzadresse und Gateway getrennt.
+// UniFi stores the gateway address plus prefix in ip_subnet, e.g. 10.13.37.1/24.
+// This splits it into network address and gateway.
 function splitSubnet(value) {
   const m = String(value || '').trim().match(/^([\d.]+)\/(\d{1,2})$/);
   if (!m) return { cidr: '', gateway: '' };
@@ -341,14 +340,14 @@ function normalizeDevice(raw) {
     mac: String(pick(raw, 'mac', 'macAddress') || '').toLowerCase(),
     name: String(pick(raw, 'name') || ''),
     model: String(pick(raw, 'model', 'shortname', 'modelName') || ''),
-    // Infrastruktur wird als statisch dokumentiert, sofern der Controller nichts anderes sagt.
+    // Infrastructure is documented as static unless the controller says otherwise.
     kind: String(pick(netzKonf, 'type') || '').toLowerCase() === 'dhcp' ? 'dhcp' : 'statisch',
   };
 }
 
-// Fest reserviert ist ein Client nur, wenn der Schalter gesetzt ist. Das Feld fixed_ip
-// bleibt in UniFi oft stehen, nachdem die feste IP ausgeschaltet wurde — es allein
-// machte bisher aus jedem alten, offline gegangenen Gerät eine «Reservierung».
+// A client only has a fixed reservation if the switch is set. UniFi often keeps the
+// fixed_ip field after the fixed IP was turned off — on its own it used to turn every
+// old device that went offline into a «reservation».
 function normalizeClient(raw) {
   const fixed = raw.use_fixedip === true || raw.useFixedIp === true;
   const ip = String((fixed ? pick(raw, 'fixed_ip', 'fixedIp') : '') || pick(raw, 'ip', 'ipAddress', 'last_ip') || '');
@@ -360,18 +359,18 @@ function normalizeClient(raw) {
     hostname: String(pick(raw, 'hostname', 'displayName') || ''),
     dns: String(pick(raw, 'local_dns_record', 'localDnsRecord') || ''),
     fixed,
-    // UniFi zählt in Sekunden
+    // UniFi counts in seconds
     lastSeen: seen ? (seen < 1e12 ? seen * 1000 : seen) : 0,
   };
 }
 
 const normMac = (m) => String(m || '').trim().toLowerCase().replace(/-/g, ':');
 
-/* ---------- Sicherheitszonen ---------- */
+/* ---------- Security zones ---------- */
 
-// Zonenbasierte Firewall ab Network 9: Jede Zone kennt die IDs ihrer Netze.
-// Gelesen über die Integration API, sonst über die ältere Controller-API. Die beiden
-// APIs vergeben unterschiedliche Netz-IDs — passt keine, wird über das Subnetz zugeordnet.
+// Zone-based firewall from Network 9 on: every zone knows the IDs of its networks.
+// Read via the Integration API, otherwise via the older controller API. The two APIs
+// assign different network IDs — if none matches, the subnet is used to assign them.
 async function zonenZuordnen(c, siteId, siteName, networks) {
   let zonen = null;
   let quelle = '';
@@ -396,8 +395,8 @@ async function zonenZuordnen(c, siteId, siteName, networks) {
     for (const id of [].concat(z.networkIds || z.network_ids || [])) zoneVon.set(String(id), name);
   }
 
-  // Netz-IDs unterscheiden sich je nach API. Darum aus beiden Listen festhalten, welches
-  // Netz hinter einer ID steckt — mit Subnetz, VLAN-ID und Name, was immer vorhanden ist.
+  // Network IDs differ between the APIs. So record from both lists which network is behind
+  // an ID — with subnet, VLAN ID and name, whatever is available.
   const steckbrief = new Map();
   const merken = (raw) => {
     const id = String(raw.id || raw._id || '');
@@ -432,10 +431,10 @@ async function zonenZuordnen(c, siteId, siteName, networks) {
   return { quelle, info, namen: zonen.map((z) => String(pick(z, 'name') || '').trim().slice(0, 40)).filter(Boolean) };
 }
 
-// Manche Geräte reichen den Verkehr anderer durch — etwa eine Sonos-Soundbar, über die
-// Sub und Rear-Lautsprecher funken. UniFi sieht deren Adressen dann hinter der MAC der
-// Soundbar. Eine MAC auf mehreren Adressen gilt deshalb als Brücke: Für jede dieser
-// Adressen wird, wo vorhanden, das eigentliche Gerät aus der Client-Liste eingesetzt.
+// Some devices pass other devices' traffic through — e.g. a Sonos soundbar that the sub
+// and rear speakers connect through. UniFi then sees their addresses behind the soundbar's
+// MAC. A MAC on several addresses is therefore treated as a bridge: for each of these
+// addresses, the actual device from the client list is used where available.
 function brueckenAufloesen(live, clients) {
   const adressen = new Map();
   for (const l of live) if (l.mac) adressen.set(l.mac, (adressen.get(l.mac) || 0) + 1);
@@ -448,7 +447,7 @@ function brueckenAufloesen(live, clients) {
   });
 }
 
-/* ---------- Abruf ---------- */
+/* ---------- Fetching ---------- */
 
 let cache = { at: 0, data: null };
 
@@ -457,15 +456,15 @@ function reset() {
   session = null;
 }
 
-// Mit `config` wird eine noch nicht gespeicherte Konfiguration ausprobiert —
-// ohne Zwischenspeicher und ohne die laufende Sitzung anzufassen.
+// With `config`, a not yet saved configuration is tried out —
+// without the cache and without touching the current session.
 async function fetchAll({ refresh = false, config = null } = {}) {
   const probe = Boolean(config);
   const c = probe
     ? { ...CFG(), ...config, user: '', pass: '', pin: config.url === CFG().url && merkbar(config) ? CFG().pin : '' }
     : CFG();
   if (!probe && merkbar(stored) && !stored.pin) {
-    // Beim Speichern war der Controller nicht erreichbar: jetzt merken.
+    // The controller was unreachable when saving: pin it now.
     const fp = await zertifikatLesen(stored.url).catch(() => '');
     if (fp) {
       stored = { ...stored, pin: fp, pinAt: new Date().toISOString() };
@@ -481,7 +480,7 @@ async function fetchAll({ refresh = false, config = null } = {}) {
   const fehler = [];
   const merken = (e) => { fehler.push(e); return null; };
 
-  // Anwendungsinfo und Site-Auflösung
+  // Application info and site resolution
   let version = '';
   let siteId = '';
   let siteName = c.site;
@@ -501,7 +500,7 @@ async function fetchAll({ refresh = false, config = null } = {}) {
     quellen.push('Integration API');
   }
 
-  // Netze: klassische API kennt das Feld ip_subnet zuverlässig, Integration API je nach Stand
+  // Networks: the classic API reliably has ip_subnet, the Integration API depending on version
   let networks = [];
   if (siteId) {
     const r = await get(`/proxy/network/integration/v1/sites/${siteId}/networks`, c, { allow404: true }).catch(merken);
@@ -532,9 +531,9 @@ async function fetchAll({ refresh = false, config = null } = {}) {
     if (z.quelle) zonenNamen = z.namen;
   }
 
-  // Feste Reservierungen: bekannte Clients der klassischen API
+  // Fixed reservations: known clients from the classic API
   let reservations = [];
-  let clients = []; // alle bekannten Clients, auch offline — für «zuletzt gesehen»
+  let clients = []; // all known clients, including offline ones — for «last seen»
   {
     const r = await get(`/proxy/network/api/s/${siteName}/rest/user`, c, { allow404: true }).catch((e) => {
       warnungen.push(`Reservierungen nicht lesbar: ${e.message}`);
@@ -545,7 +544,7 @@ async function fetchAll({ refresh = false, config = null } = {}) {
     if (reservations.length) quellen.push('Reservierungen über klassische API');
   }
 
-  // UniFi-Geräte: Gateway, Switches, Access Points
+  // UniFi devices: gateway, switches, access points
   let devices = [];
   if (siteId) {
     const seen = [];
@@ -568,7 +567,7 @@ async function fetchAll({ refresh = false, config = null } = {}) {
     if (devices.length) quellen.push('Geräte über klassische API');
   }
 
-  // Aktuell verbundene Clients
+  // Currently connected clients
   let live = [];
   if (siteId) {
     const seen = [];
@@ -593,7 +592,7 @@ async function fetchAll({ refresh = false, config = null } = {}) {
 
   live = brueckenAufloesen(live, clients);
 
-  // Kam gar nichts durch, ist das ein Fehler und kein leerer Controller.
+  // If nothing came through at all, that is an error, not an empty controller.
   if (!networks.length && !reservations.length && !live.length && !devices.length && fehler.length) {
     const abgelehnt = fehler.find((e) => /abgelehnt|401|403/.test(e.message));
     throw new Error(abgelehnt ? abgelehnt.message : fehler[0].message);
@@ -621,17 +620,17 @@ async function fetchAll({ refresh = false, config = null } = {}) {
 
 const FRISCH = 24 * 60 * 60 * 1000;
 
-/* ---------- Zonen spiegeln ---------- */
+/* ---------- Mirroring zones ---------- */
 
-// Ordnet ein dokumentiertes Netz dem Netz im Controller zu: zuerst über das Subnetz,
-// sonst über die VLAN-ID.
+// Matches a documented network to the network in the controller: by subnet first,
+// otherwise by VLAN ID.
 const netzImController = (unifi, v) =>
   unifi.networks.find((u) => u.cidr === v.cidr) ||
   unifi.networks.find((u) => u.vid > 0 && Number(v.vid) === u.vid);
 
-// Die Zone gehört UniFi: Für Netze, die der Controller kennt, wird sie übernommen und
-// als «aus UniFi» markiert. Liefert der Controller gar keine Zonen, bleibt alles, wie es ist.
-// Gibt die Änderungen zurück; der Aufrufer speichert.
+// UniFi owns the zone: for networks the controller knows, it is taken over and marked
+// as «from UniFi». If the controller returns no zones at all, everything stays as it is.
+// Returns the changes; the caller saves.
 function zonenSpiegeln(state, unifi) {
   if (!(unifi.quellen || []).some((q) => q.startsWith('Zonen'))) return [];
   const aenderungen = [];
@@ -661,7 +660,7 @@ function zonenSpiegeln(state, unifi) {
       v.zone = name;
       v.zoneAusUnifi = true;
     } else if (v.zoneAusUnifi) {
-      // Nicht mehr im Controller oder ohne Zone: Feld bleibt stehen, ist aber wieder frei.
+      // No longer in the controller or without a zone: the field stays but is editable again.
       v.zoneAusUnifi = false;
       aenderungen.push(`${v.cidr}: Zone nicht mehr aus UniFi`);
     }
@@ -669,14 +668,14 @@ function zonenSpiegeln(state, unifi) {
   return aenderungen;
 }
 
-/* ---------- Offline-Geräte ---------- */
+/* ---------- Offline devices ---------- */
 
 const OFFLINE_VORGABE = { auto: false, tage: 30, alleTypen: false };
 const offlineEinstellung = (state) => ({ ...OFFLINE_VORGABE, ...(state.settings?.offline || {}) });
 
-// Dokumentierte Hosts, die UniFi seit mindestens `tage` Tagen nicht mehr gesehen hat.
-// Bewusst vorsichtig: ohne MAC, unbekannt bei UniFi, UniFi-Gerät, gerade online oder als
-// «sporadisch» markiert wird nie vorgeschlagen. Ohne `alleTypen` nur DHCP-Einträge.
+// Documented hosts that UniFi has not seen for at least `tage` days.
+// Deliberately cautious: hosts without a MAC, unknown to UniFi, UniFi devices, currently online
+// or marked «sporadic» are never suggested. Without `alleTypen`, DHCP entries only.
 function offlineKandidaten(state, unifi, einstellung = offlineEinstellung(state), jetzt = Date.now()) {
   const online = new Set(unifi.live.map((l) => l.mac).filter(Boolean));
   const infra = new Set(unifi.devices.map((d) => d.mac).filter(Boolean));
@@ -709,7 +708,7 @@ function offlineKandidaten(state, unifi, einstellung = offlineEinstellung(state)
   return { tage: einstellung.tage, alleTypen: einstellung.alleTypen, kandidaten, ohneDaten, geprueft };
 }
 
-// Zuletzt gesehen je MAC, für die Anzeige im Hostformular.
+// Last seen per MAC, for display in the host form.
 function zuletztGesehen(unifi) {
   const out = {};
   for (const c of unifi.clients || []) if (c.mac && c.lastSeen > (out[c.mac] || 0)) out[c.mac] = c.lastSeen;
@@ -717,7 +716,7 @@ function zuletztGesehen(unifi) {
   return out;
 }
 
-/* ---------- Abgleich ---------- */
+/* ---------- Sync ---------- */
 
 function parseCidr(cidr) {
   const m = String(cidr || '').match(/^([\d.]+)\/(\d{1,2})$/);
@@ -755,7 +754,7 @@ function diff(state, unifi) {
     }
   }
 
-  // Adresse einem dokumentierten Netz zuordnen
+  // Assign an address to a documented network
   const zuNetz = (ip) => {
     const n = ipToInt(ip);
     if (n === null) return null;
@@ -766,7 +765,7 @@ function diff(state, unifi) {
     return null;
   };
 
-  // Rangfolge: Gerät vor Reservierung vor Live-Fund. Eine Adresse erscheint nur einmal.
+  // Precedence: device before reservation before live find. An address appears only once.
   const vorgeschlagen = new Set();
 
   const geraeteDiff = [];
@@ -791,15 +790,15 @@ function diff(state, unifi) {
     vorgeschlagen.add(`${vlan.id}|${g.ip}`);
   }
 
-  // Eine Reservierung kann veraltet sein: Im Controller steht sie noch für ein altes
-  // Gerät, während unter derselben Adresse längst ein anderes online ist (etwa mit
-  // statisch konfigurierter IP). Massgeblich ist dann, was tatsächlich antwortet.
+  // A reservation can be stale: the controller still lists it for an old device while
+  // another one has long been online at the same address (e.g. with a statically
+  // configured IP). What actually responds is then what counts.
   const liveNachIp = new Map(unifi.live.map((l) => [l.ip, l]));
   const gesehen = new Map();
   for (const c of unifi.clients || []) if (c.mac && c.lastSeen > (gesehen.get(c.mac) || 0)) gesehen.set(c.mac, c.lastSeen);
   const zuletzt = (mac) => (gesehen.get(mac) ? new Date(gesehen.get(mac)).toISOString() : '');
-  // Wurde das reservierte Gerät kürzlich gesehen, ist die Reservierung in Gebrauch —
-  // egal, was die Live-Daten unter der Adresse gerade zeigen.
+  // If the reserved device was seen recently, the reservation is in use —
+  // regardless of what the live data currently shows at that address.
   const kuerzlich = (mac) => Date.now() - (gesehen.get(mac) || 0) < FRISCH;
   const veraltetVon = (r, aktuell) => ({ name: r.name || r.hostname, mac: r.mac, lastSeen: zuletzt(r.mac), aktuell });
 
@@ -813,31 +812,31 @@ function diff(state, unifi) {
         veraltet: veraltetVon(r, { mac: jetzt.mac, name: jetzt.name || jetzt.hostname, online: true }),
       };
     }
-    // Dasselbe Gerät: der aktuelle Name aus dem Live-Bestand hat Vorrang.
+    // Same device: the current name from the live data takes precedence.
     return { quelle: { ...r, name: jetzt.name || r.name, hostname: jetzt.hostname || r.hostname, dns: r.dns || jetzt.dns } };
   };
 
   const hostDiff = [];
-  const pruefen = []; // im Controller zu klären, hier nichts zu übernehmen
+  const pruefen = []; // to be resolved in the controller, nothing to apply here
   const ignoriert = new Set((state.ignoriert || []).map((i) => i.key));
   let ausgeblendet = 0;
   for (const res of unifi.reservations) {
     const vlan = zuNetz(res.ip);
-    if (!vlan) continue; // Netz ist nicht dokumentiert, taucht schon oben auf
-    if (vorgeschlagen.has(`${vlan.id}|${res.ip}`)) continue; // steht bereits als Gerät
+    if (!vlan) continue; // network is not documented, already listed above
+    if (vorgeschlagen.has(`${vlan.id}|${res.ip}`)) continue; // already listed as a device
     const ergebnis = mitLive(res);
     const r = ergebnis.quelle;
     let { veraltet } = ergebnis;
     const eigen = state.hosts.find((h) => h.vlanId === vlan.id && h.ip === r.ip);
-    // Ist das dokumentierte Gerät gerade nicht online, entscheidet «zuletzt gesehen»:
-    // Wurde es später gesehen als das reservierte, ist die Reservierung veraltet —
-    // nicht die Dokumentation. Sonst würde der Abgleich die alte MAC zurückschreiben.
+    // If the documented device is not online right now, «last seen» decides:
+    // if it was seen later than the reserved one, the reservation is stale —
+    // not the documentation. Otherwise the sync would write the old MAC back.
     const eigenMac = eigen ? normMac(eigen.mac) : '';
     if (eigen && !veraltet && eigenMac && r.mac && eigenMac !== r.mac && !kuerzlich(r.mac) &&
         (gesehen.get(eigenMac) || 0) > (gesehen.get(r.mac) || 0)) {
       veraltet = veraltetVon(r, { mac: eigenMac, name: eigen.hostname, online: false });
     }
-    // Bewusst ausgeblendete Hinweise: gebunden an Adresse und MAC der Reservierung.
+    // Deliberately hidden notices: tied to the address and MAC of the reservation.
     if (veraltet && ignoriert.has(`chk:${r.ip}|${veraltet.mac}`)) {
       ausgeblendet++;
       veraltet = undefined;
@@ -854,13 +853,13 @@ function diff(state, unifi) {
       continue;
     }
     const abweichungen = [];
-    // Bei veralteter Reservierung stimmt die dokumentierte MAC — nichts vorschlagen.
+    // With a stale reservation, the documented MAC is correct — suggest nothing.
     if (!veraltet && r.mac && eigen.mac && eigenMac !== r.mac) {
       abweichungen.push({ feld: 'mac', label: 'MAC', ipam: eigen.mac, unifi: r.mac });
     }
     if (r.mac && !eigen.mac) abweichungen.push({ feld: 'mac', label: 'MAC', ipam: '', unifi: r.mac });
-    // Eine Reservierung im Controller heisst hier «reserviert» — sofern sie zu genau
-    // diesem Gerät gehört.
+    // A reservation in the controller means «reserved» here — provided it belongs to
+    // exactly this device.
     if (!veraltet && r.fixed && eigen.kind !== 'reserviert' && (!eigenMac || eigenMac === r.mac)) {
       abweichungen.push({ feld: 'kind', label: 'Typ', ipam: eigen.kind || 'statisch', unifi: 'reserviert' });
     }
@@ -872,9 +871,9 @@ function diff(state, unifi) {
     vorgeschlagen.add(`${vlan.id}|${r.ip}`);
   }
 
-  // Live gesehen, aber nirgends erfasst.
-  // Adressen, die oben schon als Reservierung zur Übernahme stehen, bleiben hier aussen vor —
-  // sonst legt eine Übernahme beider Listen denselben Host zweimal an.
+  // Seen live, but not recorded anywhere.
+  // Addresses already offered above as a reservation to apply are left out here —
+  // otherwise applying both lists would create the same host twice.
   const undokumentiert = [];
   for (const l of unifi.live) {
     const vlan = zuNetz(l.ip);

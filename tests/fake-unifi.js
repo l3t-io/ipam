@@ -1,14 +1,14 @@
 'use strict';
 
-// Nachgebauter UniFi-Controller: Integration API mit X-API-KEY, klassische API für Reservierungen.
+// Simulated UniFi controller: Integration API with X-API-KEY, classic API for reservations.
 
 const http = require('node:http');
 const https = require('node:https');
 
-// zonen: 'integration' (v1 mit denselben Netz-IDs), 'klassisch' (v2 mit eigenen IDs) oder 'keine'
-// netzeOhneSubnetz: Integration API liefert Netze ohne Subnetz (dann zählen die klassischen,
-// deren IDs nicht zu den Zonen passen)
-// tls: { key, cert } startet den Controller über HTTPS; port: fester Port statt zufällig
+// zonen: 'integration' (v1 with the same network IDs), 'klassisch' (v2 with its own IDs) or 'keine'
+// netzeOhneSubnetz: Integration API returns networks without a subnet (then the classic ones count,
+// whose IDs do not match the zones)
+// tls: { key, cert } starts the controller over HTTPS; port: fixed port instead of a random one
 function startFakeUnifi({ key = 'richtiger-schluessel-1234', reservations = [], zonen = 'integration', netzeOhneSubnetz = false, tls = null, port = 0 } = {}) {
   const seenKeys = [];
   const routes = {
@@ -57,7 +57,7 @@ function startFakeUnifi({ key = 'richtiger-schluessel-1234', reservations = [], 
     server.listen(port, '127.0.0.1', () => {
       resolve({
         url: `${tls ? 'https' : 'http'}://127.0.0.1:${server.address().port}`,
-        // Zertifikat im laufenden Betrieb tauschen (stellt einen Angreifer dazwischen nach)
+        // Swap the certificate while running (simulates an attacker in the middle)
         zertifikatTauschen: (neu) => server.setSecureContext(neu),
         key,
         seenKeys,

@@ -1,6 +1,6 @@
 'use strict';
 
-// Startet den echten Server als eigenen Prozess mit leerem Datenordner.
+// Starts the real server as a separate process with an empty data folder.
 
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
@@ -33,7 +33,7 @@ async function startServer({ env = {}, dataDir = tempDir() } = {}) {
       IPAM_PORT: String(port),
       IPAM_HOST: '127.0.0.1',
       IPAM_AUTH_FAIL_DELAY_MS: '0',
-      IPAM_LANG: 'de', // die Tests prüfen deutsche Protokollzeilen
+      IPAM_LANG: 'de', // the tests check German log lines
       ...env,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -68,7 +68,7 @@ async function startServer({ env = {}, dataDir = tempDir() } = {}) {
   };
 }
 
-// fetch mit optionalem Cookie und dem Pflicht-Header für schreibende Aufrufe.
+// fetch with an optional cookie and the mandatory header for writing calls.
 async function req(base, method, pathname, { body, cookie, headers = {}, csrf = true } = {}) {
   const h = { ...headers };
   if (csrf) h['X-IPAM-Request'] = '1';

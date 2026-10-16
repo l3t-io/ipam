@@ -1,8 +1,8 @@
 'use strict';
 
-// Baut das Synology-Paket: _exports/l3t-ipam-<version>-synology.zip
-// Ohne externe Abhängigkeiten, damit es unter Windows, macOS und Linux gleich läuft.
-// Aufruf: npm run package   (optional: node scripts/package.js <zielordner>)
+// Builds the Synology package: _exports/l3t-ipam-<version>-synology.zip
+// No external dependencies, so it runs the same on Windows, macOS and Linux.
+// Usage: npm run package   (optional: node scripts/package.js <target folder>)
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -11,8 +11,8 @@ const zlib = require('node:zlib');
 const ROOT = path.resolve(__dirname, '..');
 const PREFIX = 'l3t-ipam/';
 
-// Was ins Paket gehört. Alles andere (Tests, Skripte, Repo-Dateien) bleibt draussen.
-// Einträge sind Pfade im Repo; [quelle, ziel] legt eine Datei unter anderem Namen ab.
+// What goes into the package. Everything else (tests, scripts, repo files) stays out.
+// Entries are repo paths; [source, target] stores a file under a different name.
 const COMPOSE = 'deploy/synology-mount/docker-compose.yml';
 const INHALT = ['app', 'data/.keep', [COMPOSE, 'docker-compose.yml'], 'SYNOLOGY.md', 'CHANGELOG.md', 'LICENSE'];
 const PFLICHT = [
@@ -29,7 +29,7 @@ function version() {
   return m[1];
 }
 
-// Prüft genau die Fehler, die in der Vergangenheit schon einmal passiert sind.
+// Checks for exactly the mistakes that have already happened in the past.
 function pruefen() {
   for (const f of PFLICHT) {
     if (!fs.existsSync(path.join(ROOT, f))) throw new Error(`Pflichtdatei fehlt: ${f}`);
@@ -44,7 +44,7 @@ function pruefen() {
 }
 
 function sammeln() {
-  const eintraege = [{ name: '', dir: true }]; // Wurzelordner l3t-ipam/
+  const eintraege = [{ name: '', dir: true }]; // root folder l3t-ipam/
   const besuchen = (rel) => {
     const abs = path.join(ROOT, rel);
     const st = fs.statSync(abs);
@@ -61,7 +61,7 @@ function sammeln() {
       continue;
     }
     const rel = eintrag;
-    // Elternordner von Einzeldateien (etwa data/) als eigenen Eintrag anlegen.
+    // Add parent folders of single files (such as data/) as entries of their own.
     const teile = rel.split('/');
     for (let i = 1; i < teile.length; i++) {
       const d = `${teile.slice(0, i).join('/')}/`;
@@ -72,7 +72,7 @@ function sammeln() {
   return eintraege;
 }
 
-/* ---------- ZIP-Schreiber (PKZIP 2.0, Deflate) ---------- */
+/* ---------- ZIP writer (PKZIP 2.0, Deflate) ---------- */
 
 const CRC_TABLE = (() => {
   const t = new Uint32Array(256);
@@ -108,13 +108,13 @@ function zip(eintraege) {
     const gepackt = e.dir ? roh : zlib.deflateRawSync(roh, { level: 9 });
     const methode = e.dir ? 0 : 8;
     const crc = e.dir ? 0 : crc32(roh);
-    // Unix-Rechte, damit die Synology beim Entpacken sinnvolle Modi setzt.
+    // Unix permissions, so the Synology sets sensible modes when extracting.
     const attr = ((e.dir ? 0o40755 : 0o100644) << 16) >>> 0 | (e.dir ? 0x10 : 0);
 
     const lh = Buffer.alloc(30);
     lh.writeUInt32LE(0x04034b50, 0);
     lh.writeUInt16LE(20, 4);
-    lh.writeUInt16LE(0x0800, 6); // Dateinamen in UTF-8
+    lh.writeUInt16LE(0x0800, 6); // file names in UTF-8
     lh.writeUInt16LE(methode, 8);
     lh.writeUInt16LE(time, 10);
     lh.writeUInt16LE(date, 12);
@@ -127,7 +127,7 @@ function zip(eintraege) {
 
     const ch = Buffer.alloc(46);
     ch.writeUInt32LE(0x02014b50, 0);
-    ch.writeUInt16LE(0x0314, 4); // erstellt unter Unix, Version 2.0
+    ch.writeUInt16LE(0x0314, 4); // made on Unix, version 2.0
     ch.writeUInt16LE(20, 6);
     ch.writeUInt16LE(0x0800, 8);
     ch.writeUInt16LE(methode, 10);

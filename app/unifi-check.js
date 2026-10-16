@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 'use strict';
 
-// Diagnose der UniFi-Anbindung. Zeigt, was gelesen werden konnte und was nicht.
-// Aufruf im Container (z. B. Container Manager → Container → l3t-ipam → Terminal):
+// Diagnostics for the UniFi connection. Shows what could be read and what couldn't.
+// Run inside the container (e.g. Container Manager → Container → l3t-ipam → Terminal):
 //   node unifi-check.js
-// Liest dieselben Zugangsdaten wie die Anwendung: zuerst data/unifi.json aus der
-// Oberfläche, sonst die IPAM_UNIFI_*-Variablen. Sprache wie das Protokoll: IPAM_LANG.
+// Reads the same credentials as the app: first data/unifi.json from the UI,
+// otherwise the IPAM_UNIFI_* variables. Language follows the log: IPAM_LANG.
 
 const path = require('node:path');
 const unifi = require('./unifi');
@@ -20,7 +20,7 @@ const herkunft = {
   web: t('Oberfläche (data/unifi.json)'), umgebung: t('Compose-Datei'), keine: '—',
 }[unifi.source()];
 
-// Zweispaltig: Bezeichnung links, auf gleiche Breite gebracht
+// Two columns: label on the left, padded to equal width
 const zeile = (label, wert) => console.log(`${`${label}:`.padEnd(18)} ${wert}`);
 
 const zertifikat = () => {

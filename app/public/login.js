@@ -1,7 +1,7 @@
 'use strict';
 
-// Übersetzung. Fehlt i18n.js (etwa weil der Server es vor der Anmeldung nicht ausliefert),
-// bleibt die Anmeldung deutsch, funktioniert aber weiter.
+// Translation. If i18n.js is missing (e.g. because the server doesn't serve it before login),
+// the login page stays German but keeps working.
 const I18 = window.I18N || {
   t: (s, v = {}) => s.replace(/\{(\w+)\}/g, (m, k) => (k in v ? String(v[k]) : m)),
   tr: (s) => s,
@@ -21,7 +21,7 @@ async function call(method, path, body) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json().catch(() => ({}));
-  // Meldungen des Servers kommen deutsch und werden hier übersetzt.
+  // Server messages arrive in German and are translated here.
   if (!res.ok) throw new Error(data.error ? tr(data.error) : t('Fehler {status}', { status: res.status }));
   return data;
 }
@@ -61,7 +61,7 @@ wire($('formSetup'), (f) => {
   });
 });
 
-// Feste Texte übersetzen und Sprachumschalter verdrahten. Umschalten lädt die Seite neu.
+// Translate static texts and wire up the language switch. Switching reloads the page.
 I18.applyStatic(document);
 if (window.I18N) {
   $('btnLang').hidden = false;

@@ -1,8 +1,8 @@
-# Laufzeitdaten — der Bestand gehört nicht ins Repository
+# Runtime data — the inventory does not belong in the repository
 data/*
 !data/.keep
 
-# Gebaute Pakete (werden als GitHub-Release angehängt, nicht eingecheckt)
+# Built packages (attached to the GitHub release, not checked in)
 _exports/
 
 node_modules/
