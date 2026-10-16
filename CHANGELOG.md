@@ -3,7 +3,7 @@
 Die Version steht in `server.js` (`APP_VERSION`), wird über `/api/state` ausgeliefert
 und ist in der Oberfläche oben neben der Wortmarke sichtbar.
 
-## Unreleased
+## 2.1.3 — 16.10.2026
 
 ### Fixed
 

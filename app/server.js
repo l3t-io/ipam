@@ -3,7 +3,7 @@
 // l3t-ipam - minimal IPAM
 // Node >= 18, no external dependencies.
 
-const APP_VERSION = '2.1.2';
+const APP_VERSION = '2.1.3';
 
 const http = require('node:http');
 const fs = require('node:fs');
