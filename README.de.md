@@ -172,7 +172,10 @@ npm run package    # Synology-ZIP (Variante mit eingehängtem Code) nach _export
 Ohne Anmeldung entwickeln: `IPAM_AUTH=off npm start`.
 
 Release: `APP_VERSION` in `app/server.js` und `package.json` anheben, Eintrag im
-Changelog, Tag `vX.Y.Z` — der Tag baut und veröffentlicht das Container-Image.
+Changelog, Tag `vX.Y.Z` setzen und pushen. Der Rest läuft automatisch: Der Workflow prüft,
+dass Tag, Version und Changelog zusammenpassen, baut und veröffentlicht das
+Container-Image und legt danach das GitHub-Release an — mit dem Changelog-Abschnitt als
+Text und dem Synology-ZIP als Anhang. Vorschau des Texts: `node scripts/release-notes.js`.
 
 ## Unterstützen
 
