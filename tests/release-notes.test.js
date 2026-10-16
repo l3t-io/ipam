@@ -11,7 +11,7 @@ describe('Release notes', () => {
     const v = appVersion();
     assert.equal(check(`v${v}`), v);
     const n = notes(v);
-    assert.match(n, new RegExp(`ghcr\\.io/l3t-io/ipam:${v.replace(/\./g, '\\.')}`));
+    assert.ok(n.includes(`docker pull ghcr.io/l3t-io/ipam:${v}\``), 'pull line with the exact version');
     assert.doesNotMatch(n, /^## /m, 'only the one section, without the next heading');
   });
 
