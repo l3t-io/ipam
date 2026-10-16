@@ -8,6 +8,8 @@ Abhängigkeiten.
 
 [English](README.md) · [Changelog](CHANGELOG.md) · [Anleitung Synology](SYNOLOGY.md)
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M2P628W1P2)
+
 ![Übersicht](docs/screenshots/overview.png)
 
 ## Funktionen
@@ -171,6 +173,15 @@ Ohne Anmeldung entwickeln: `IPAM_AUTH=off npm start`.
 
 Release: `APP_VERSION` in `app/server.js` und `package.json` anheben, Eintrag im
 Changelog, Tag `vX.Y.Z` — der Tag baut und veröffentlicht das Container-Image.
+
+## Unterstützen
+
+L3T IPAM ist kostenlos und bleibt es — keine Bezahlversion, kein Tracking. Wenn es dir Zeit
+spart, freue ich mich über einen Kaffee:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M2P628W1P2)
+
+Fehlermeldungen und Ideen sind genauso willkommen: [Issues](https://github.com/l3t-io/ipam/issues).
 
 ## Lizenz
 
