@@ -3,6 +3,22 @@
 Die Version steht in `server.js` (`APP_VERSION`), wird über `/api/state` ausgeliefert
 und ist in der Oberfläche oben neben der Wortmarke sichtbar.
 
+## 2.1.2 — 16.10.2026
+
+### Security
+
+- **Certificate pinning for a UniFi connection from the Compose file.** A connection set
+  only via `IPAM_UNIFI_URL`/`IPAM_UNIFI_KEY` (not saved in the web UI) skipped the
+  certificate check: the key went to whatever certificate the address presented. It is
+  now pinned on first contact (in memory, per container start), and a different
+  certificate aborts the connection before the key is sent. In general the key is now
+  never sent without a known certificate when the CA check is off — except in the
+  connection test for a new address, which is where the pin comes from. Connections
+  saved in the web UI were already pinned (2.0.0).
+- The setup code is drawn without modulo bias (`crypto.randomInt`). Previously a few
+  characters were very slightly more likely; not practically exploitable, found by
+  CodeQL.
+
 ## 2.1.1 — 16.10.2026
 
 ### Fixed

@@ -23,6 +23,7 @@ const zones = require('./zones');
 // unifi.json is deliberately kept apart from ipam.json so the key never ends up in an export.
 let configFile = '';
 let stored = null; // { url, key, site, insecure, updatedAt }
+let envPin = ''; // connection from the Compose file: certificate pinned in memory on first contact
 
 const ENV = () => ({
   url: (process.env.IPAM_UNIFI_URL || '').replace(/\/+$/, ''),
@@ -40,7 +41,7 @@ const CFG = () => {
   const kontoErlaubt = Boolean(env.url) && basis.url === env.url;
   return {
     ...basis,
-    pin: stored && merkbar(stored) ? stored.pin || '' : '',
+    pin: stored ? (merkbar(stored) ? stored.pin || '' : '') : merkbar(env) ? envPin : '',
     user: kontoErlaubt ? process.env.IPAM_UNIFI_USER || '' : '',
     pass: kontoErlaubt ? process.env.IPAM_UNIFI_PASS || '' : '',
     ttl: Number(process.env.IPAM_UNIFI_TTL || 30) * 1000,
@@ -463,13 +464,19 @@ async function fetchAll({ refresh = false, config = null } = {}) {
   const c = probe
     ? { ...CFG(), ...config, user: '', pass: '', pin: config.url === CFG().url && merkbar(config) ? CFG().pin : '' }
     : CFG();
-  if (!probe && merkbar(stored) && !stored.pin) {
-    // The controller was unreachable when saving: pin it now.
-    const fp = await zertifikatLesen(stored.url).catch(() => '');
-    if (fp) {
+  if (!probe && merkbar(c) && !c.pin) {
+    // Not pinned yet — the controller was unreachable when saving, or the connection comes
+    // from the Compose file (pinned in memory for the lifetime of the process). Pin now:
+    // without a CA check the key only ever goes out to a known certificate. (The connection
+    // test with a new address is the exception: that is the «first use» the pin comes from.)
+    const fp = await zertifikatLesen(c.url); // unreachable: network error, nothing sent
+    if (!fp) throw new Error('Zertifikat des Controllers nicht lesbar — Verbindung abgebrochen');
+    c.pin = fp;
+    if (stored) {
       stored = { ...stored, pin: fp, pinAt: new Date().toISOString() };
       await schreiben(stored).catch(() => {});
-      c.pin = fp;
+    } else {
+      envPin = fp;
     }
   }
   if (!probe && !isConfigured()) throw new Error('Keine UniFi-Zugangsdaten hinterlegt');

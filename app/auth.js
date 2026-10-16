@@ -90,8 +90,8 @@ function passtIp(ip, eintrag) {
 // Easy to read, without confusable characters such as 0/O or 1/I/L.
 function setupCode() {
   const abc = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  const bytes = crypto.randomBytes(12);
-  const s = [...bytes].map((b) => abc[b % abc.length]).join('');
+  // randomInt instead of byte % length: every character equally likely (no modulo bias).
+  const s = Array.from({ length: 12 }, () => abc[crypto.randomInt(abc.length)]).join('');
   return `${s.slice(0, 4)}-${s.slice(4, 8)}-${s.slice(8, 12)}`;
 }
 

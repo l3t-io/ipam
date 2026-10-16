@@ -81,6 +81,20 @@ describe('Controller certificate', () => {
     } finally { await srv.stop(); if (ctl) await ctl.stop(); }
   });
 
+  test('connection from the Compose file: pinned on first contact, a different certificate aborts', async () => {
+    const ctl = await startFakeUnifi({ tls: A });
+    const srv = await startServer({ env: { IPAM_AUTH: 'off', IPAM_UNIFI_URL: ctl.url, IPAM_UNIFI_KEY: ctl.key } });
+    try {
+      assert.equal((await req(srv.base, 'GET', '/api/unifi/diff?refresh=1')).status, 200);
+      ctl.zertifikatTauschen(B);
+      const vorher = ctl.seenKeys.length;
+      await new Promise((r) => setTimeout(r, 5100)); // «Refresh» is limited to once every 5 s
+      const d = await req(srv.base, 'GET', '/api/unifi/diff?refresh=1');
+      assert.match(d.json.error || '', /Zertifikat des Controllers hat sich geändert/);
+      assert.equal(ctl.seenKeys.length, vorher, 'the key did not reach the server');
+    } finally { await srv.stop(); await ctl.stop(); }
+  });
+
   test('with «Verify certificate» (CA) nothing is remembered', async () => {
     const ctl = await startFakeUnifi({ tls: A });
     const srv = await startServer({ env: { IPAM_AUTH: 'off' } });

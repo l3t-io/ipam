@@ -537,6 +537,7 @@
     'ECONNREFUSED / Zeitüberschreitung → Adresse falsch, oder das Netz darf den Controller nicht erreichen': 'ECONNREFUSED / timeout → wrong address, or this network may not reach the controller',
     'Zertifikat geändert → nach einem Update des Controllers die Anbindung in den Einstellungen erneut speichern': 'Certificate changed → after a controller update, save the connection in the settings again',
     '404 auf allen Pfaden → Network-App älter als 9.3; dann ein Konto per IPAM_UNIFI_USER und IPAM_UNIFI_PASS hinterlegen': '404 on every path → Network app older than 9.3; set an account via IPAM_UNIFI_USER and IPAM_UNIFI_PASS',
+    'Zertifikat des Controllers nicht lesbar — Verbindung abgebrochen': 'Could not read the controller certificate — connection aborted',
     'Zertifikat des Controllers hat sich geändert (jetzt {fp}) — Verbindung abgebrochen. Ist das erwartet, etwa nach einem Update des Controllers, die Anbindung in den Einstellungen erneut speichern.':
       'The controller certificate has changed (now {fp}) — connection aborted. If this is expected, e.g. after a controller update, save the connection in the settings again.',
     'Zertifikat gemerkt: {fp} — jede Verbindung wird damit verglichen, bevor der Schlüssel gesendet wird.':
