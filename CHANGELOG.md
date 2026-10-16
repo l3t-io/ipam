@@ -99,7 +99,7 @@ written in English; earlier entries are in German.
 
 Nothing to migrate: data, accounts, sessions and the UniFi connection are kept. Set
 `IPAM_DOMAIN` if you relied on the old default, and `IPAM_LANG: de` for a German log.
-To switch a Synology to the ready-made image, see SYNOLOGY.md («Variante A»).
+To switch a Synology to the ready-made image, see SYNOLOGY.md («Variant A»).
 
 ### Tests
 
