@@ -16,6 +16,7 @@ const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
 const { URL } = require('node:url');
+const zones = require('./zones');
 
 // Zugangsdaten: in der Oberfläche gepflegt und in data/unifi.json abgelegt.
 // Die Variablen aus der Compose-Datei gelten nur, solange dort nichts gespeichert ist.
@@ -428,7 +429,7 @@ async function zonenZuordnen(c, siteId, siteName, networks) {
   const ohne = networks.filter((n) => !n.zone).map((n) => n.name);
   const info = `${zonen.length} Zonen gelesen, ${networks.length - ohne.length} von ${networks.length} Netzen zugeordnet` +
     (ohne.length ? ` — ohne Zone: ${ohne.join(', ')}` : '');
-  return { quelle, info };
+  return { quelle, info, namen: zonen.map((z) => String(pick(z, 'name') || '').trim().slice(0, 40)).filter(Boolean) };
 }
 
 // Manche Geräte reichen den Verkehr anderer durch — etwa eine Sonos-Soundbar, über die
@@ -522,11 +523,13 @@ async function fetchAll({ refresh = false, config = null } = {}) {
   }
 
   let zonenInfo = '';
+  let zonenNamen = null; // all zone names the controller knows, null if none could be read
   if (networks.length) {
     const z = await zonenZuordnen(c, siteId, siteName, networks)
       .catch((e) => ({ quelle: '', info: `Zonen nicht lesbar: ${e.message}` }));
     if (z.quelle) quellen.push(z.quelle);
     zonenInfo = z.info;
+    if (z.quelle) zonenNamen = z.namen;
   }
 
   // Feste Reservierungen: bekannte Clients der klassischen API
@@ -604,6 +607,7 @@ async function fetchAll({ refresh = false, config = null } = {}) {
     quellen,
     warnungen,
     zonenInfo,
+    zonenNamen,
     networks,
     reservations,
     clients,
@@ -631,12 +635,30 @@ const netzImController = (unifi, v) =>
 function zonenSpiegeln(state, unifi) {
   if (!(unifi.quellen || []).some((q) => q.startsWith('Zonen'))) return [];
   const aenderungen = [];
+  // Zones as records: every zone the controller knows exists here as well (system zones only
+  // when a network uses them). Zones UniFi no longer has become manual ones.
+  const imController = new Set();
+  const benutzt = new Set(unifi.networks.map((u) => String(u.zone || '').toLowerCase()).filter(Boolean));
+  for (const name of unifi.zonenNamen || []) {
+    imController.add(name.toLowerCase());
+    if (zones.SYSTEM_ZONES.has(name.toLowerCase()) && !benutzt.has(name.toLowerCase())) continue;
+    const { zone, neu } = zones.sicherstellen(state, name, 'unifi');
+    if (neu) aenderungen.push(`Zone «${zone.name}» angelegt`);
+    else if (zone.quelle !== 'unifi') { zone.quelle = 'unifi'; aenderungen.push(`Zone «${zone.name}» kommt jetzt aus UniFi`); }
+  }
+  for (const z of state.zones || []) {
+    if (z.quelle === 'unifi' && unifi.zonenNamen && !imController.has(z.name.toLowerCase())) {
+      z.quelle = 'manuell';
+      aenderungen.push(`Zone «${z.name}» nicht mehr in UniFi`);
+    }
+  }
   for (const v of state.vlans) {
     const u = netzImController(unifi, v);
     const zone = u && u.zone;
     if (zone) {
-      if (v.zone !== zone) aenderungen.push(`${v.cidr}: ${v.zone || '—'} → ${zone}`);
-      v.zone = zone;
+      const name = zones.sicherstellen(state, zone, 'unifi').zone.name;
+      if (v.zone !== name) aenderungen.push(`${v.cidr}: ${v.zone || '—'} → ${name}`);
+      v.zone = name;
       v.zoneAusUnifi = true;
     } else if (v.zoneAusUnifi) {
       // Nicht mehr im Controller oder ohne Zone: Feld bleibt stehen, ist aber wieder frei.

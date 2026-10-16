@@ -3,7 +3,7 @@
 // l3t-ipam - minimal IPAM
 // Node >= 18, keine externen Abhaengigkeiten.
 
-const APP_VERSION = '2.0.1';
+const APP_VERSION = '2.1.0';
 
 const http = require('node:http');
 const fs = require('node:fs');
@@ -11,6 +11,7 @@ const fsp = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const unifi = require('./unifi');
+const zones = require('./zones');
 const { createAuth } = require('./auth');
 
 const PORT = Number(process.env.IPAM_PORT || 8080);
@@ -35,7 +36,7 @@ const DEFAULT_SETTINGS = { theme: 'auto', offline: { ...unifi.OFFLINE_VORGABE } 
 const COLORS = ['blau', 'kupferton', 'gruen', 'braun', 'schiefer', 'violett'];
 // Die Farbe landet als CSS-Variable im Stil-Attribut — nur bekannte Namen zulassen.
 const farbe = (c) => (COLORS.includes(c) ? c : c === 'orange' ? 'kupferton' : 'blau');
-const EMPTY = { version: 1, settings: { ...DEFAULT_SETTINGS }, vlans: [], hosts: [], ignoriert: [] };
+const EMPTY = { version: 1, settings: { ...DEFAULT_SETTINGS }, zones: [], vlans: [], hosts: [], ignoriert: [] };
 
 let state = null;
 let writeChain = Promise.resolve();
@@ -62,12 +63,18 @@ async function loadState() {
         ...DEFAULT_SETTINGS, ...(parsed.settings || {}),
         offline: { ...DEFAULT_SETTINGS.offline, ...(parsed.settings?.offline || {}) },
       },
+      zones: Array.isArray(parsed.zones) ? parsed.zones : [],
       vlans: Array.isArray(parsed.vlans) ? parsed.vlans : [],
       hosts: Array.isArray(parsed.hosts) ? parsed.hosts : [],
       // Ausgeblendete Hinweise aus dem UniFi-Abgleich
       ignoriert: Array.isArray(parsed.ignoriert) ? parsed.ignoriert : [],
     };
     log(`geladen: ${state.vlans.length} VLANs, ${state.hosts.length} Hosts`);
+    // Zones became records in 2.1: create them for networks that only carry a zone name.
+    if (zones.migrieren(state)) {
+      await persist();
+      log(`Zonen eingerichtet: ${state.zones.length}`);
+    }
   } catch (err) {
     if (err.code !== 'ENOENT') {
       log('WARNUNG: ipam.json unlesbar, starte leer:', err.message);
@@ -192,6 +199,12 @@ function cleanHost(input, existing = {}) {
   return host;
 }
 
+// A network named a zone that doesn't exist yet: create it, and use its exact spelling.
+function zoneZuordnen(vlan) {
+  if (vlan.zone) vlan.zone = zones.sicherstellen(state, vlan.zone, 'manuell').zone.name;
+  return vlan;
+}
+
 const belegt = (vlanId, ip, ausserId) =>
   state.hosts.some((h) => h.vlanId === vlanId && h.ip === ip && h.id !== ausserId);
 
@@ -260,7 +273,11 @@ async function api(req, res, url) {
         netzId.set(v && v.id, c.id);
         return c;
       });
-      state = { version: 1, settings: before.settings, vlans, hosts: [], ignoriert: before.ignoriert || [] };
+      state = {
+        version: 1, settings: before.settings, zones: Array.isArray(body.zones) ? body.zones : [], vlans, hosts: [],
+        ignoriert: before.ignoriert || [],
+      };
+      zones.migrieren(state);
       state.hosts = body.hosts.map((h) => cleanHost({ ...h, vlanId: netzId.has(h && h.vlanId) ? netzId.get(h.vlanId) : '' },
         { ...h, id: eindeutig(h && h.id) }));
     } catch (err) {
@@ -512,9 +529,37 @@ async function api(req, res, url) {
     return send(res, 200, state.settings);
   }
 
+  if (kind === 'zones') {
+    if (method === 'POST') {
+      const zone = zones.cleanZone(await readBody(req), null, state.zones);
+      state.zones.push(zone);
+      await persist();
+      log(`Zone «${zone.name}» angelegt`);
+      return send(res, 201, zone);
+    }
+    const zone = state.zones.find((z) => z.id === id);
+    if (!zone) return send(res, 404, { error: 'Zone nicht gefunden' });
+    if (method === 'PATCH') {
+      const neu = zones.cleanZone(await readBody(req), zone, state.zones);
+      if (neu.name !== zone.name) zones.umbenennen(state, zone.name, neu.name);
+      state.zones[state.zones.indexOf(zone)] = neu;
+      await persist();
+      return send(res, 200, neu);
+    }
+    if (method === 'DELETE') {
+      if (zone.quelle === 'unifi') {
+        return send(res, 409, { error: 'Diese Zone kommt aus UniFi und würde beim nächsten Abgleich wieder angelegt' });
+      }
+      const frei = zones.entfernen(state, zone);
+      await persist();
+      log(`Zone «${zone.name}» gelöscht, ${frei} Netze ohne Zone`);
+      return send(res, 200, { ok: true, netzeOhneZone: frei });
+    }
+  }
+
   if (kind === 'vlans') {
     if (method === 'POST') {
-      const vlan = cleanVlan(await readBody(req));
+      const vlan = zoneZuordnen(cleanVlan(await readBody(req)));
       state.vlans.push(vlan);
       await persist();
       return send(res, 201, vlan);
@@ -522,7 +567,7 @@ async function api(req, res, url) {
     const idx = state.vlans.findIndex((v) => v.id === id);
     if (idx === -1) return send(res, 404, { error: 'VLAN nicht gefunden' });
     if (method === 'PATCH') {
-      const vlan = cleanVlan({ ...state.vlans[idx], ...(await readBody(req)) }, state.vlans[idx]);
+      const vlan = zoneZuordnen(cleanVlan({ ...state.vlans[idx], ...(await readBody(req)) }, state.vlans[idx]));
       state.vlans[idx] = vlan;
       await persist();
       return send(res, 200, vlan);

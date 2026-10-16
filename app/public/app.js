@@ -40,21 +40,38 @@ const KINDS = ['statisch', 'dhcp', 'reserviert'];
 // Der Typ bleibt im Bestand deutsch; übersetzt wird nur die Anzeige.
 const KIND_LABEL = { statisch: t('statisch'), dhcp: t('dhcp'), reserviert: t('reserviert') };
 const kindLabel = (k) => KIND_LABEL[k] || k;
-// Systemzonen der zonenbasierten Firewall in UniFi Network 9; eigene Zonen kommen dazu.
+// Default zones of UniFi's zone-based firewall, offered as suggestions next to existing zones.
 const ZONEN = ['Internal', 'External', 'Gateway', 'DMZ', 'Hotspot', 'VPN'];
-const zonenVorschlaege = () => [...new Set([...ZONEN, ...DB.vlans.map((v) => v.zone).filter(Boolean)])];
-// Feste Farbe je Zone. Andere Zonen (External, Gateway, eigene) behalten die Netzfarbe.
-const ZONENFARBE = {
-  dmz: 'dmz', hotspot: 'hotspot', internal: 'internal', management: 'management', mgmt: 'management',
-  multimedia: 'multimedia', media: 'multimedia', server: 'server', servers: 'server', vpn: 'vpn',
-};
-const HELLE_ZONEN = new Set(['hotspot', 'server']);
-const zonenFarbe = (zone) => ZONENFARBE[String(zone || '').trim().toLowerCase()] || '';
+const zonenVorschlaege = () => [...new Set([...(DB.zones || []).map((z) => z.name), ...ZONEN])];
 
-// CSS-Variablen für ein Netz: Hintergrund und lesbare Schrift darauf.
+// Zone colours: a key of the validated palette (light/dark variants in style.css) or a
+// custom hex colour. Text on a colour switches to dark where white would be hard to read.
+const PALETTE = ['rot', 'bernstein', 'gruen', 'blau', 'violett', 'rosa', 'grau'];
+const PALETTE_LABEL = {
+  rot: t('Rot'), bernstein: t('Bernstein'), gruen: t('Grün'), blau: t('Blau'),
+  violett: t('Violett'), rosa: t('Rosa'), grau: t('Grau'),
+};
+const HELLE_FARBEN = new Set(['bernstein', 'rosa']);
+const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+const zoneVon = (name) => (DB.zones || []).find((z) => z.name.toLowerCase() === String(name || '').trim().toLowerCase());
+
+// Relative luminance (WCAG): above ~0.18, dark text reads better than white.
+function hellerHintergrund(hex) {
+  const lin = (c) => { const x = c / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; };
+  const n = parseInt(hex.slice(1), 16);
+  return 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255) > 0.18;
+}
+
+function farbStil(color) {
+  if (PALETTE.includes(color)) return `--dot:var(--zf-${color});--dot-text:${HELLE_FARBEN.has(color) ? 'var(--auf-hell)' : '#FFFFFF'}`;
+  if (HEX_RE.test(color)) return `--dot:${color};--dot-text:${hellerHintergrund(color) ? 'var(--auf-hell)' : '#FFFFFF'}`;
+  return '';
+}
+
+// CSS variables for a network: the zone's colour, or the network's own colour without a zone.
 function netzStil(v) {
-  const z = zonenFarbe(v.zone);
-  if (z) return `--dot:var(--zone-${z});--dot-text:${HELLE_ZONEN.has(z) ? 'var(--auf-hell)' : '#FFFFFF'}`;
+  const z = zoneVon(v.zone);
+  if (z) return farbStil(z.color);
   return `--dot:var(--${v.color === 'orange' ? 'kupferton' : esc(v.color || 'blau')})`;
 }
 
@@ -1181,22 +1198,25 @@ function typZahlen(typ, gesamt) {
 
 // Netze und Hosts je Sicherheitszone. Erscheint erst, wenn Zonen gepflegt sind.
 function zonenUebersicht(stats) {
-  if (!stats.some((s) => s.v.zone)) return '';
-  const zonen = new Map();
+  if (!stats.some((s) => s.v.zone) && !(DB.zones || []).length) return '';
+  const zonen = new Map((DB.zones || []).map((z) => [z.name, { netze: [], hosts: 0 }]));
   for (const s of stats) {
-    const z = s.v.zone || '';
+    const z = zoneVon(s.v.zone)?.name || '';
     const e = zonen.get(z) || { netze: [], hosts: 0 };
     e.netze.push(s.v);
     e.hosts += s.hosts.length;
     zonen.set(z, e);
   }
   const reihenfolge = [...zonen.keys()].sort((a, b) => (a === '') - (b === '') || a.localeCompare(b));
-  return `<div class="section-head"><h2>${esc(t('Sicherheitszonen'))}</h2><span class="count">${zahl(reihenfolge.filter(Boolean).length)}</span></div>
+  return `<div class="section-head"><h2>${esc(t('Sicherheitszonen'))}</h2><span class="count">${zahl(reihenfolge.filter(Boolean).length)}</span>
+      <button class="btn small section-action" id="zonenVerwalten">${esc(darfSchreiben() ? t('Verwalten') : t('Anzeigen'))}</button></div>
     <div class="ov-zones">${reihenfolge.map((z) => {
     const e = zonen.get(z);
-    return `<div class="ov-zone${z ? '' : ' ov-zone-leer'}" style="${zonenFarbe(z) ? netzStil({ zone: z }) : ''}">
+    const zone = zoneVon(z);
+    return `<div class="ov-zone${z ? '' : ' ov-zone-leer'}" style="${zone ? farbStil(zone.color) : ''}">
         <div class="ov-zone-name">${esc(z || t('ohne Zone'))}</div>
         <div class="ov-zone-zahlen">${esc(tn(e.netze.length, '1 Netz', '{n} Netze'))} · ${esc(tn(e.hosts, '1 Host', '{n} Hosts', { n: zahl(e.hosts) }))}</div>
+        ${zone && zone.beschreibung ? `<div class="ov-zone-zahlen">${esc(zone.beschreibung)}</div>` : ''}
         <div class="ov-zone-netze">${e.netze.map((v) => `<button class="row-link" data-vlanjump="${esc(v.id)}">${esc(v.vid)} ${esc(v.name)}</button>`).join(' · ')}</div>
       </div>`;
   }).join('')}</div>`;
@@ -1304,6 +1324,7 @@ function renderOverview(main) {
     el.onclick = () => { selectedId = el.dataset.vlanjump; $('main').scrollTop = 0; render(); };
   });
   main.querySelectorAll('[data-unifi]').forEach((el) => { el.onclick = () => unifiDrawer(); });
+  if ($('zonenVerwalten')) $('zonenVerwalten').onclick = () => zonenDrawer();
   main.querySelectorAll('[data-ign]').forEach((el) => {
     el.onclick = async () => {
       try {
@@ -1319,6 +1340,105 @@ function renderOverview(main) {
         await call('DELETE', '/api/ignore?art=auf');
         await reload();
       } catch (e) { toast(e.message); }
+    };
+  }
+}
+
+/* ---------- Security zones ---------- */
+
+// Zone management in a drawer: list, create, edit, delete. Zones from UniFi keep their name
+// (owned by the controller); colour and description are always editable.
+function zonenDrawer(ansicht = null) {
+  const zonen = (DB.zones || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+  const netzeVon = (z) => DB.vlans.filter((v) => (v.zone || '').toLowerCase() === z.name.toLowerCase());
+  const titel = t('Sicherheitszonen');
+
+  if (ansicht === null) {
+    openDrawer(titel, `
+      <p class="account-note">${esc(t('Netze tragen die Farbe ihrer Zone. Zonen aus UniFi werden automatisch angelegt; eigene Zonen lassen sich frei anlegen.'))}</p>
+      ${zonen.length ? `<ul class="zone-admin">${zonen.map((z) => {
+        const n = netzeVon(z).length;
+        return `<li>
+          <span class="zone-chip" style="${farbStil(z.color)}" aria-hidden="true"></span>
+          <span class="zone-admin-main">
+            <span class="zone-admin-name">${esc(z.name)} ${z.quelle === 'unifi' ? `<span class="tag">${esc(t('aus UniFi'))}</span>` : ''}</span>
+            <span class="zone-admin-meta">${esc(tn(n, '1 Netz', '{n} Netze'))}${z.beschreibung ? ` · ${esc(z.beschreibung)}` : ''}</span>
+          </span>
+          ${darfSchreiben() ? `<button class="btn small" data-zone="${esc(z.id)}">${esc(t('Bearbeiten'))}</button>` : ''}
+        </li>`;
+      }).join('')}</ul>` : `<p class="sync-empty">${esc(t('Noch keine Zonen.'))}</p>`}
+      <div class="drawer-actions">
+        ${darfSchreiben() ? `<button class="btn primary" id="zoneNeu">${esc(t('Zone anlegen'))}</button>` : ''}
+        <button class="btn ghost" id="cancel">${esc(t('Schliessen'))}</button>
+      </div>`);
+    $('cancel').onclick = closeDrawer;
+    if ($('zoneNeu')) $('zoneNeu').onclick = () => zonenDrawer('neu');
+    $('drawerBody').querySelectorAll('[data-zone]').forEach((el) => { el.onclick = () => zonenDrawer(el.dataset.zone); });
+    return;
+  }
+
+  const z = ansicht === 'neu' ? null : zonen.find((x) => x.id === ansicht);
+  if (ansicht !== 'neu' && !z) return zonenDrawer();
+  const ausUnifi = z && z.quelle === 'unifi';
+  const anzahl = (p) => zonen.filter((x) => x.color === p).length;
+  const farbe = z ? z.color : PALETTE.reduce((best, p) => (anzahl(p) < anzahl(best) ? p : best));
+  const n = z ? netzeVon(z).length : 0;
+
+  openDrawer(z ? t('Zone bearbeiten') : t('Zone anlegen'), `
+    <div class="field"><label for="z-name">${esc(t('Name'))}</label>
+      <input id="z-name" value="${esc(z ? z.name : '')}" maxlength="40" autocomplete="off" ${ausUnifi ? 'disabled' : ''}>
+      ${ausUnifi ? `<div class="hint seen">${esc(t('Der Name kommt aus UniFi und wird dort geändert.'))}</div>` : ''}</div>
+    <div class="field"><label>${esc(t('Farbe'))}</label>
+      <div class="swatches" id="z-palette">${PALETTE.map((p) =>
+        `<button type="button" class="swatch ${p === farbe ? 'on' : ''}" data-farbe="${p}" style="${farbStil(p)};background:var(--dot)" aria-label="${esc(PALETTE_LABEL[p])}" title="${esc(PALETTE_LABEL[p])}"></button>`).join('')}
+        <label class="swatch swatch-eigen ${HEX_RE.test(farbe) ? 'on' : ''}" title="${esc(t('Eigene Farbe'))}">
+          <input type="color" id="z-eigen" value="${HEX_RE.test(farbe) ? esc(farbe.toLowerCase()) : '#336699'}" aria-label="${esc(t('Eigene Farbe'))}">
+        </label>
+      </div>
+      <input type="hidden" id="z-farbe" value="${esc(farbe)}">
+      <div class="hint">${esc(t('Die sieben Farben sind auf Unterscheidbarkeit geprüft, hell wie dunkel. Eigene Farben gehen auch — die Schrift darauf passt sich an.'))}</div></div>
+    <div class="field"><label for="z-beschreibung">${esc(t('Beschreibung'))}</label>
+      <input id="z-beschreibung" value="${esc(z ? z.beschreibung : '')}" maxlength="120" placeholder="${esc(t('z. B. exponierte Dienste'))}"></div>
+    ${z ? `<p class="account-note">${esc(tn(n, 'Gilt für 1 Netz.', 'Gilt für {n} Netze.'))}</p>` : ''}
+    <div class="form-error" role="alert"></div>
+    <div class="drawer-actions">
+      <button class="btn primary" id="save">${esc(t('Speichern'))}</button>
+      <button class="btn ghost" id="back">${esc(t('Zurück'))}</button>
+      ${z && !ausUnifi ? `<button class="btn destructive" id="del">${esc(t('Zone löschen'))}</button>` : ''}
+    </div>`);
+
+  const body = $('drawerBody');
+  const waehlen = (wert) => {
+    $('z-farbe').value = wert;
+    body.querySelectorAll('#z-palette .swatch').forEach((s) => s.classList.toggle('on', s.dataset.farbe === wert));
+    body.querySelector('.swatch-eigen').classList.toggle('on', HEX_RE.test(wert));
+  };
+  body.querySelectorAll('[data-farbe]').forEach((s) => { s.onclick = () => waehlen(s.dataset.farbe); });
+  $('z-eigen').addEventListener('input', (e) => waehlen(e.target.value.toUpperCase()));
+  $('back').onclick = () => zonenDrawer();
+  $('save').onclick = async () => {
+    const daten = { name: $('z-name').value.trim(), color: $('z-farbe').value, beschreibung: $('z-beschreibung').value.trim() };
+    if (!ausUnifi && !daten.name) return showErr(t('Name der Zone fehlt'));
+    try {
+      if (z) await call('PATCH', `/api/zones/${encodeURIComponent(z.id)}`, daten);
+      else await call('POST', '/api/zones', daten);
+      await reload();
+      toast(z ? t('Zone gespeichert') : t('Zone angelegt'));
+      zonenDrawer();
+    } catch (e) { showErr(e.message); }
+  };
+  if ($('del')) {
+    $('del').onclick = async () => {
+      const frage = n
+        ? t('Zone «{zone}» löschen? {n} Netze sind dann ohne Zone und zeigen wieder ihre eigene Farbe.', { zone: z.name, n })
+        : t('Zone «{zone}» löschen?', { zone: z.name });
+      if (!confirm(frage)) return;
+      try {
+        await call('DELETE', `/api/zones/${encodeURIComponent(z.id)}`);
+        await reload();
+        toast(t('Zone gelöscht'));
+        zonenDrawer();
+      } catch (e) { showErr(e.message); }
     };
   }
 }
@@ -1413,6 +1533,14 @@ function nurAnsehen() {
 
 /* ---------- Netzformular ---------- */
 
+function zonenFarbHinweis(name) {
+  if (!String(name || '').trim()) return '';
+  const z = zoneVon(name);
+  return z
+    ? t('Farbe kommt von der Zone «{zone}» — änderbar unter «Zonen verwalten».', { zone: z.name })
+    : t('Die Zone «{zone}» wird beim Speichern angelegt.', { zone: String(name).trim() });
+}
+
 function vlanForm(vlan) {
   const isNew = !vlan;
   const v = vlan || { vid: '', name: '', cidr: '', gateway: '', dhcpFrom: '', dhcpTo: '', color: 'blau', zone: '', purpose: '', notes: '' };
@@ -1436,17 +1564,19 @@ function vlanForm(vlan) {
       <div class="field"><label for="f-dt">${esc(t('DHCP bis'))}</label>
         <input id="f-dt" name="dhcpTo" value="${esc(v.dhcpTo)}"></div>
     </div>
-    <div class="field"><label for="f-zone">${esc(t('Sicherheitszone'))}</label>
+    <div class="field"><label for="f-zone">${esc(t('Sicherheitszone'))}
+        <button type="button" class="row-link label-link" id="f-zonen">${esc(t('Zonen verwalten'))}</button></label>
       <input id="f-zone" name="zone" list="zonen" value="${esc(v.zone || '')}" placeholder="${esc(t('z. B. Internal'))}" autocomplete="off" ${v.zoneAusUnifi ? 'disabled' : ''}>
       <datalist id="zonen">${zonenVorschlaege().map((z) => `<option value="${esc(z)}">`).join('')}</datalist>
       <div class="hint seen">${esc(v.zoneAusUnifi
     ? t('Aus UniFi — wird automatisch übernommen. Ändern in der zonenbasierten Firewall von UniFi.')
     : DB.unifi ? t('UniFi kennt dieses Netz nicht oder liefert keine Zone, deshalb von Hand.') : t('Zone der Firewall, etwa aus UniFi.'))}</div></div>
-    <div class="field"><label>${esc(t('Farbe'))}</label>
-      <div class="swatches${zonenFarbe(v.zone) ? ' gesperrt' : ''}">${COLORS.map((c) =>
+    <div class="field" id="farbFeld" ${v.zone ? 'hidden' : ''}><label>${esc(t('Farbe'))}</label>
+      <div class="swatches">${COLORS.map((c) =>
         `<button type="button" class="swatch ${c === color ? 'on' : ''}" data-color="${c}" style="background:var(--${c})" aria-label="${esc(farbName(c))}"></button>`).join('')}</div>
       <input type="hidden" name="color" value="${esc(color)}">
-      <div class="hint seen" id="farbHinweis">${zonenFarbe(v.zone) ? esc(t('Folgt der Zone «{zone}».', { zone: v.zone })) : ''}</div></div>
+      <div class="hint">${esc(t('Nur für Netze ohne Zone — mit Zone gilt die Farbe der Zone.'))}</div></div>
+    <div class="hint seen zone-farbe-hinweis" id="farbHinweis">${esc(zonenFarbHinweis(v.zone))}</div>
     <div class="field"><label for="f-purpose">${esc(t('Zweck'))}</label>
       <input id="f-purpose" name="purpose" value="${esc(v.purpose)}" placeholder="${esc(t('Kameras, isoliert'))}"></div>
     <div class="field"><label for="f-notes">${esc(t('Notizen'))}</label>
@@ -1455,17 +1585,16 @@ function vlanForm(vlan) {
 
   if (!darfSchreiben()) return nurAnsehen();
   const body = $('drawerBody');
-  // Gehört die Zone zu den festen Zonenfarben, ist die Farbe vorgegeben.
+  // With a zone the colour comes from the zone; the network's own colour only without one.
   const farbeNachZone = () => {
-    const z = $('f-zone').value;
-    const fest = zonenFarbe(z);
-    body.querySelector('.swatches').classList.toggle('gesperrt', !!fest);
-    $('farbHinweis').textContent = fest ? t('Folgt der Zone «{zone}».', { zone: z.trim() }) : '';
+    const z = $('f-zone').value.trim();
+    $('farbFeld').hidden = Boolean(z);
+    $('farbHinweis').textContent = zonenFarbHinweis(z);
   };
   $('f-zone').addEventListener('input', farbeNachZone);
+  $('f-zonen').onclick = () => zonenDrawer();
   body.querySelectorAll('.swatch').forEach((s) => {
     s.onclick = () => {
-      if (body.querySelector('.swatches.gesperrt')) return;
       body.querySelectorAll('.swatch').forEach((x) => x.classList.remove('on'));
       s.classList.add('on');
       body.querySelector('[name="color"]').value = s.dataset.color;
@@ -1648,6 +1777,7 @@ function showOverview(e) {
 }
 
 $('navOverview').onclick = showOverview;
+$('navZonen').onclick = () => { closeRail(); zonenDrawer(); };
 $('brand').onclick = showOverview;
 $('btnTheme').onclick = cycleTheme;
 $('btnSettings').onclick = () => { closeRail(); settingsDrawer(); };

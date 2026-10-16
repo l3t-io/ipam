@@ -25,14 +25,19 @@ no dependencies.
 - **UniFi sync (read-only)** — reads networks, fixed-IP reservations, UniFi devices,
   connected clients and firewall security zones via the official Integration API, with
   fallback to the classic controller API. You review every change before it is applied;
-  only security zones are mirrored automatically. UniFi itself is never modified.
+  only security zones are mirrored automatically (and created here if missing). UniFi
+  itself is never modified.
   Handles real-world cases: stale reservations, devices bridging others (e.g. a Sonos
   soundbar with surrounds), clients that left long ago.
 - **Offline cleanup** — remove hosts UniFi hasn't seen for N days, manually or on a
   schedule, with safeguards (DHCP entries only by default, never unknown devices, aborts
   if too many would go, backup first). Battery devices can be marked «sporadic».
-- **Security zones** with fixed colors (DMZ, Hotspot, Internal, Management, Multimedia,
-  Server, VPN) — validated to stay distinguishable, light and dark.
+- **Security zones** — create, rename, recolour and delete zones; networks take the
+  colour of their zone. Zones from UniFi are created automatically (name owned by UniFi,
+  colour and description editable here). Seven palette colours validated to stay
+  distinguishable in light and dark mode, plus custom colours. Well-known zones (DMZ,
+  Hotspot, Internal, Management, Multimedia, Server, VPN) start with an established
+  colour; networks without a zone keep their own colour.
 - **Users and roles** — Administrator, Editor, Viewer. Built-in login with scrypt
   password hashes, lockout after failed attempts, sessions you can revoke. Designed to
   sit behind a Cloudflare Tunnel or reverse proxy without an extra auth layer.
@@ -47,6 +52,8 @@ no dependencies.
 | Address grid — static, reserved (corner), DHCP leases, online ring, undocumented (hatched) | UniFi sync — review before applying |
 | ![Dark mode](docs/screenshots/dark.png) | ![Users and roles](docs/screenshots/users.png) |
 | Dark mode, network colours follow the security zone | Users and roles |
+| ![Security zones](docs/screenshots/zones.png) | |
+| Security zones — colour, description, source | |
 
 <img src="docs/screenshots/mobile.png" alt="Phone" width="260">
 
@@ -157,7 +164,8 @@ entry, tag `vX.Y.Z` — the tag builds and publishes the container image.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). The bundled IBM Plex Mono font is under the SIL Open Font
+License, see [app/public/fonts/LICENSE.txt](app/public/fonts/LICENSE.txt).
 
 UniFi is a trademark of Ubiquiti Inc. L3T IPAM is an independent project and is not
 affiliated with or endorsed by Ubiquiti.

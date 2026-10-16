@@ -37,13 +37,13 @@
   /* Zonenfarben: geprüft auf Unterscheidbarkeit aller Paare (dataviz-Validator).
      Rot und Grün sind bei Rot-Grün-Schwäche nicht trennbar — die Zone steht deshalb
      immer auch als Text daneben. Dunkle Abstufungen unten bei den Erscheinungsbildern. */
-  --zone-dmz: #C8402F;
-  --zone-hotspot: #D99A00;
-  --zone-internal: #2E8B3E;
-  --zone-management: #2A78D6;
-  --zone-multimedia: #8B4CC0;
-  --zone-server: #E87BA4;
-  --zone-vpn: #6E7C8C;
+  --zf-rot: #C8402F;
+  --zf-bernstein: #D99A00;
+  --zf-gruen: #2E8B3E;
+  --zf-blau: #2A78D6;
+  --zf-violett: #8B4CC0;
+  --zf-rosa: #E87BA4;
+  --zf-grau: #6E7C8C;
   --auf-hell: #1C1C1A;          /* Schrift auf hellen Zonenfarben (Hotspot, Server) */
 
   --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -69,9 +69,9 @@
 }
 
 [data-theme="dark"] {
-  --zone-hotspot: #C98500;
-  --zone-management: #3987E5;
-  --zone-server: #D66AA6;
+  --zf-bernstein: #C98500;
+  --zf-blau: #3987E5;
+  --zf-rosa: #D66AA6;
   --bg: #131312;
   --surface: #1C1C1A;
   --surface-2: #232322;
@@ -90,9 +90,9 @@
 
 @media (prefers-color-scheme: dark) {
   [data-theme="auto"] {
-    --zone-hotspot: #C98500;
-    --zone-management: #3987E5;
-    --zone-server: #D66AA6;
+    --zf-bernstein: #C98500;
+    --zf-blau: #3987E5;
+    --zf-rosa: #D66AA6;
     --bg: #131312;
     --surface: #1C1C1A;
     --surface-2: #232322;
@@ -630,8 +630,21 @@ td.note { color: var(--muted); max-width: 30ch; }
 .ov-table th.num { text-align: right; }
 .ov-table .vid { color: var(--dot-text, #FFFFFF); }
 .ov-zones .ov-zone { border-left: 3px solid var(--dot, var(--line)); }
-.swatches.gesperrt .swatch { opacity: .35; cursor: default; }
-.swatches.gesperrt .swatch.on { border-color: transparent; }
+/* Zone management */
+.zone-admin { list-style: none; margin: 0 0 6px; padding: 0; }
+.zone-admin li { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
+.zone-chip { width: 16px; height: 16px; border-radius: 3px; background: var(--dot, var(--line)); flex: none; }
+.zone-admin-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.zone-admin-name { font-weight: 500; }
+.zone-admin-meta { font-size: 11.5px; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.swatch-eigen {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  background: conic-gradient(#C8402F, #D99A00, #2E8B3E, #2A78D6, #8B4CC0, #E87BA4, #C8402F);
+}
+.swatch-eigen input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; border: 0; padding: 0; }
+.label-link { float: right; font-size: 11.5px; }
+.section-head .section-action { margin-left: auto; }
+.zone-farbe-hinweis { margin: -4px 0 12px; }
 .ov-table td { vertical-align: middle; }
 .ov-bar-col { width: 32%; min-width: 180px; }
 .ov-bar-wrap { display: flex; align-items: center; gap: 10px; }

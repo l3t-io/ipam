@@ -202,6 +202,13 @@ Die **Sicherheitszone** jedes Netzes (zonenbasierte Firewall ab Network 9) wird
 automatisch aus UniFi übernommen und ist dann im Netzformular gesperrt — geändert wird
 sie in UniFi. Für Netze, die UniFi nicht kennt, lässt sie sich von Hand eintragen.
 
+**Zonen verwalten:** Links «Sicherheitszonen» (oder in der Übersicht «Verwalten») listet
+alle Zonen. Zonen aus UniFi legt der Abgleich selbst an, falls es sie noch nicht gibt;
+ihr Name gehört UniFi, Farbe und Beschreibung lassen sich hier ändern. Eigene Zonen
+lassen sich frei anlegen, umbenennen (die Netze ziehen mit) und löschen (die Netze sind
+dann ohne Zone). Ein Netz trägt die Farbe seiner Zone; die eigene Netzfarbe gilt nur für
+Netze ohne Zone. Verschwindet eine Zone aus UniFi, bleibt sie hier als eigene Zone stehen.
+
 **Offline-Geräte:** Unter Zahnrad → UniFi → Offline-Geräte stellst du ein, nach wie
 vielen Tagen ohne Lebenszeichen ein dokumentierter Host als offline gilt, und ob er dann
 automatisch entfernt wird. Vorgabe: nur von Hand, nur DHCP-Einträge, 30 Tage. Geräte, die

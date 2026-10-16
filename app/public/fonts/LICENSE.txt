@@ -1,0 +1,6 @@
+IBM Plex Mono
+Copyright © 2017 IBM Corp. with Reserved Font Name "Plex"
+
+Licensed under the SIL Open Font License, Version 1.1.
+Full text: https://openfontlicense.org/open-font-license-official-text/
+Source: https://github.com/IBM/plex

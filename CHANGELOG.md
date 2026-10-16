@@ -3,6 +3,34 @@
 Die Version steht in `server.js` (`APP_VERSION`), wird über `/api/state` ausgeliefert
 und ist in der Oberfläche oben neben der Wortmarke sichtbar.
 
+## 2.1.0 — 16.10.2026 · Zone management
+
+### New
+
+- **Security zones are now records of their own**, with a name, a colour and an optional
+  description. Manage them under «Security zones» in the sidebar or via «Manage» in the
+  overview: create, rename (networks follow), recolour, delete (networks lose the zone and
+  show their own colour again).
+- **Colour choice per zone**: the seven validated palette colours or any custom colour;
+  text on custom colours switches between dark and light for contrast.
+- **Zones from UniFi are created automatically** during sync if they don't exist yet.
+  Their name is owned by UniFi and locked here; colour and description stay editable. A
+  manual zone with the same name becomes the UniFi zone and keeps its colour. A zone that
+  disappears from the controller stays as a manual zone. The system zones «External» and
+  «Gateway» are only created when a network uses them.
+- Giving a network a zone name that doesn't exist yet creates the zone.
+- The overview shows every zone, including those without networks, with its description.
+
+### Changed
+
+- The network colour only applies to networks without a zone and is hidden in the network
+  form as soon as a zone is set.
+- Data from earlier versions is migrated on start: every zone name in use becomes a zone,
+  well-known names (DMZ, Hotspot, Internal, Management, Multimedia, Server, VPN) with
+  their established colour. Export and import include zones.
+- License notice for the bundled IBM Plex Mono font (SIL Open Font License) in
+  `app/public/fonts/LICENSE.txt`.
+
 ## 2.0.1 — 15.10.2026
 
 ### Changed

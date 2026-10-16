@@ -259,7 +259,8 @@ describe('Sicherheitszonen aus UniFi', () => {
       const s1 = vlans.find((v) => v.id === server.id);
       assert.equal(s1.zone, 'Internal');
       assert.equal(s1.zoneAusUnifi, true);
-      assert.match(srv.logs, /Zonen aus UniFi übernommen: 10\.13\.20\.0\/24: DMZ → Internal/);
+      assert.match(srv.logs, /Zonen aus UniFi übernommen: .*10\.13\.20\.0\/24: DMZ → Internal/);
+      assert.match(srv.logs, /Zone «Internal» angelegt/);
 
       const d = await req(srv.base, 'GET', '/api/unifi/diff?refresh=1');
       assert.ok(!d.json.netze.some((n) => n.art === 'abweichend'), 'nichts mehr zu übernehmen');

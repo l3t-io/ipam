@@ -27,7 +27,8 @@ Abhängigkeiten.
 - **UniFi-Abgleich (nur lesend)** — liest Netze, feste Reservierungen, UniFi-Geräte,
   verbundene Clients und die Sicherheitszonen der Firewall über die offizielle
   Integration API, mit Rückfall auf die klassische Controller-API. Jede Änderung wird
-  vor dem Übernehmen angezeigt; nur die Sicherheitszonen werden automatisch gespiegelt.
+  vor dem Übernehmen angezeigt; nur die Sicherheitszonen werden automatisch gespiegelt
+  (und hier angelegt, wenn es sie noch nicht gibt).
   UniFi selbst wird nie verändert. Kommt mit Praxisfällen zurecht: veraltete
   Reservierungen, Geräte, die andere durchreichen (etwa eine Sonos-Soundbar mit
   Rear-Lautsprechern), längst verschwundene Clients.
@@ -35,8 +36,12 @@ Abhängigkeiten.
   Hand oder automatisch, mit Sicherungen (vorgegeben nur DHCP-Einträge, nie unbekannte
   Geräte, Abbruch wenn zu viele betroffen wären, vorher eine Sicherung).
   Batteriegeräte lassen sich als «sporadisch» markieren.
-- **Sicherheitszonen** mit festen Farben (DMZ, Hotspot, Internal, Management, Multimedia,
-  Server, VPN) — geprüft auf Unterscheidbarkeit, hell wie dunkel.
+- **Sicherheitszonen** — Zonen anlegen, umbenennen, einfärben und löschen; Netze tragen
+  die Farbe ihrer Zone. Zonen aus UniFi werden automatisch angelegt (der Name gehört
+  UniFi, Farbe und Beschreibung sind hier änderbar). Sieben Palettenfarben, geprüft auf
+  Unterscheidbarkeit hell wie dunkel, dazu eigene Farben. Bekannte Zonen (DMZ, Hotspot,
+  Internal, Management, Multimedia, Server, VPN) starten mit ihrer üblichen Farbe; Netze
+  ohne Zone behalten ihre eigene Farbe.
 - **Benutzer und Rollen** — Administrator, Bearbeiten, Lesen. Eigene Anmeldung mit
   scrypt-Hashes, Sperre nach Fehlversuchen, widerrufbare Sitzungen. Gedacht für den
   Betrieb hinter einem Cloudflare-Tunnel oder Reverse Proxy ohne zusätzliche Anmeldung.
@@ -51,6 +56,8 @@ Abhängigkeiten.
 | Belegungsraster — statisch, reserviert (Ecke), DHCP-Leases, Online-Ring, undokumentiert (schraffiert) | UniFi-Abgleich — prüfen vor dem Übernehmen |
 | ![Dunkel](docs/screenshots/dark.png) | ![Benutzer und Rollen](docs/screenshots/users.png) |
 | Dunkles Erscheinungsbild, Netzfarben folgen der Sicherheitszone | Benutzer und Rollen |
+| ![Sicherheitszonen](docs/screenshots/zones.png) | |
+| Sicherheitszonen — Farbe, Beschreibung, Herkunft | |
 
 <img src="docs/screenshots/mobile.png" alt="Handy" width="260">
 
@@ -167,7 +174,8 @@ Changelog, Tag `vX.Y.Z` — der Tag baut und veröffentlicht das Container-Image
 
 ## Lizenz
 
-MIT — siehe [LICENSE](LICENSE).
+MIT — siehe [LICENSE](LICENSE). Die mitgelieferte Schrift IBM Plex Mono steht unter der
+SIL Open Font License, siehe [app/public/fonts/LICENSE.txt](app/public/fonts/LICENSE.txt).
 
 UniFi ist eine Marke von Ubiquiti Inc. L3T IPAM ist ein unabhängiges Projekt und steht
 in keiner Verbindung zu Ubiquiti.

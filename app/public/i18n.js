@@ -456,6 +456,52 @@
     'Unbekannter Endpunkt': 'Unknown endpoint',
     'Anfrage zu gross': 'Request too large',
 
+    // Zone management (2.1)
+    'Farben und Zuordnung': 'Colours and assignment',
+    'Netze tragen die Farbe ihrer Zone. Zonen aus UniFi werden automatisch angelegt; eigene Zonen lassen sich frei anlegen.':
+      'Networks take the colour of their zone. Zones from UniFi are created automatically; you can add your own as well.',
+    'Noch keine Zonen.': 'No zones yet.',
+    'Zone anlegen': 'Add zone',
+    'Zone bearbeiten': 'Edit zone',
+    'Zone löschen': 'Delete zone',
+    'Zone angelegt': 'Zone added',
+    'Zone gespeichert': 'Zone saved',
+    'Zone gelöscht': 'Zone deleted',
+    'Zonen verwalten': 'Manage zones',
+    'Verwalten': 'Manage',
+    'Anzeigen': 'Show',
+    'Beschreibung': 'Description',
+    'z. B. exponierte Dienste': 'e.g. exposed services',
+    'Eigene Farbe': 'Custom colour',
+    'Rot': 'Red',
+    'Bernstein': 'Amber',
+    'Grün': 'Green',
+    'Blau': 'Blue',
+    'Violett': 'Violet',
+    'Rosa': 'Pink',
+    'Grau': 'Grey',
+    'Der Name kommt aus UniFi und wird dort geändert.': 'The name comes from UniFi and is changed there.',
+    'Die sieben Farben sind auf Unterscheidbarkeit geprüft, hell wie dunkel. Eigene Farben gehen auch — die Schrift darauf passt sich an.':
+      'The seven colours are checked to stay distinguishable in light and dark mode. Custom colours work too — the text on them adapts.',
+    'Gilt für 1 Netz.': 'Used by 1 network.',
+    'Gilt für {n} Netze.': 'Used by {n} networks.',
+    'Zone «{zone}» löschen?': 'Delete zone «{zone}»?',
+    'Zone «{zone}» löschen? {n} Netze sind dann ohne Zone und zeigen wieder ihre eigene Farbe.':
+      'Delete zone «{zone}»? {n} networks will have no zone and show their own colour again.',
+    'Nur für Netze ohne Zone — mit Zone gilt die Farbe der Zone.': 'Only for networks without a zone — with a zone, the zone\'s colour applies.',
+    'Farbe kommt von der Zone «{zone}» — änderbar unter «Zonen verwalten».': 'Colour comes from zone «{zone}» — change it under «Manage zones».',
+    'Die Zone «{zone}» wird beim Speichern angelegt.': 'Zone «{zone}» will be created when you save.',
+    'Name der Zone fehlt': 'Zone name missing',
+    'Die Zone «{name}» gibt es schon': 'Zone «{name}» already exists',
+    'Unbekannte Farbe': 'Unknown colour',
+    'Zone nicht gefunden': 'Zone not found',
+    'Diese Zone kommt aus UniFi und würde beim nächsten Abgleich wieder angelegt': 'This zone comes from UniFi and would be created again on the next sync',
+    'Zone «{name}» angelegt': 'Zone «{name}» created',
+    'Zone «{name}» gelöscht, {n} Netze ohne Zone': 'Zone «{name}» deleted, {n} networks without zone',
+    'Zonen eingerichtet: {n}': 'Zones set up: {n}',
+    'Zone «{name}» kommt jetzt aus UniFi': 'Zone «{name}» now comes from UniFi',
+    'Zone «{name}» nicht mehr in UniFi': 'Zone «{name}» no longer in UniFi',
+
     // Diagnosewerkzeug unifi-check.js
     'l3t ipam — UniFi-Diagnose': 'l3t ipam — UniFi diagnostics',
     'Oberfläche (data/unifi.json)': 'web UI (data/unifi.json)',
@@ -626,6 +672,8 @@
   // Platzhalter, deren Wert selbst eine deutsche Meldung ist (etwa «Import abgebrochen: {fehler}»).
   // tr() übersetzt sie mit.
   const VERSCHACHTELT = new Set(['fehler', 'grund', 'was']);
+  // Placeholders holding a comma-separated list of messages: each entry is translated.
+  const LISTEN = new Set(['aenderungen']);
 
   const LANGS = ['de', 'en'];
   const SPEICHER = 'l3t-lang';
@@ -700,7 +748,8 @@
       const vars = {};
       m.namen.forEach((name, i) => {
         const wert = treffer[i + 1];
-        vars[name] = VERSCHACHTELT.has(name) ? tr(wert) : wert;
+        vars[name] = VERSCHACHTELT.has(name) ? tr(wert)
+          : LISTEN.has(name) ? wert.split(', ').map(tr).join(', ') : wert;
       });
       return fill(EN[m.key], vars);
     }
