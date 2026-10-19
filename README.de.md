@@ -1,3 +1,8 @@
+<a href="https://l3t.io"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/l3t-negativ.svg">
+  <img src="docs/brand/l3t-positiv.svg" alt="l3t" height="40">
+</picture></a>
+
 # L3T IPAM
 
 **Schlankes IP-Adressmanagement fürs Homelab — mit UniFi-Abgleich.**

@@ -3,6 +3,15 @@
 Die Version steht in `server.js` (`APP_VERSION`), wird über `/api/state` ausgeliefert
 und ist in der Oberfläche oben neben der Wortmarke sichtbar.
 
+## Unreleased
+
+### Changed
+
+- Colours named after the l3t brand kit: links and small copper text on the light theme use
+  Kupfer tief `#A84F1C` (4.9:1 on the background, was 4.37:1), the hover of primary buttons
+  Kupfer dunkel `#8F4218`.
+- The README shows the l3t prompt logo from the brand kit.
+
 ## 2.1.3 — 16.10.2026
 
 ### Fixed

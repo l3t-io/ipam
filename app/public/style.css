@@ -20,7 +20,8 @@
 :root {
   --kupfer: #B4551E;        /* buttons, links */
   --kupfer-hell: #E07A22;   /* logo, highlight on dark background */
-  --kupfer-tief: #8F4218;   /* pressed */
+  --kupfer-tief: #A84F1C;   /* links and small text on light background */
+  --kupfer-dunkel: #8F4218; /* hover, pressed */
   --auf-kupfer: #FFFFFF;
   --kopf: #1C1C1A;
 
@@ -62,7 +63,7 @@
   --muted: #63636A;
   --faint: #92929A;
   --danger: #A8331F;
-  --accent: var(--kupfer);
+  --accent: var(--kupfer-tief);
   --zelle-frei: #E6E4E0;
   --zelle-rand: #D5D2CC;
   --zelle-pool: #C9D3DD;
@@ -211,7 +212,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .btn.icon { width: 29px; padding: 0; }
 .btn.lang-toggle { font-size: 11px; font-weight: 600; letter-spacing: .04em; }
 .btn.primary { background: var(--kupfer); border-color: var(--kupfer); color: var(--auf-kupfer); font-weight: 500; }
-.btn.primary:hover { background: var(--kupfer-tief); border-color: var(--kupfer-tief); }
+.btn.primary:hover { background: var(--kupfer-dunkel); border-color: var(--kupfer-dunkel); }
 .btn.destructive { color: var(--danger); border-color: transparent; background: transparent; }
 .btn.destructive:hover { border-color: var(--danger); }
 
